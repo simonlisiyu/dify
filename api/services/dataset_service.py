@@ -216,6 +216,7 @@ class DatasetService:
         dataset.permission = permission or DatasetPermissionEnum.ONLY_ME
         dataset.provider = provider
         # [Starry] directory dataset
+        dataset.account_id = account.id
         dataset.directory_id = directory_id
         db.session.add(dataset)
         db.session.flush()
