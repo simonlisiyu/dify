@@ -40,18 +40,9 @@ from .vdb.weaviate_config import WeaviateConfig
 
 
 class StorageConfig(BaseSettings):
+    # [Starry] remove unused storage type
     STORAGE_TYPE: Literal[
         "opendal",
-        "s3",
-        "aliyun-oss",
-        "azure-blob",
-        "baidu-obs",
-        "google-storage",
-        "huawei-obs",
-        "oci-storage",
-        "tencent-cos",
-        "volcengine-tos",
-        "supabase",
         "local",
     ] = Field(
         description="Type of storage to use."
