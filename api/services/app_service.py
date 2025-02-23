@@ -23,6 +23,8 @@ from models.model import App, AppMode, AppModelConfig
 from models.tools import ApiToolProvider
 from services.tag_service import TagService
 from tasks.remove_app_and_related_data_task import remove_app_and_related_data_task
+# [Starry] directory app
+from services.directory_service import DirectoryService
 
 
 class AppService:
@@ -36,6 +38,13 @@ class AppService:
         """
         filters = [App.tenant_id == tenant_id, App.is_universal == False]
 
+        # [Starry] directory app
+        directory_service = DirectoryService()
+        directory_all_sub = directory_service.get_sub_directorys('app', args['directory_id'])
+        directory_id_list = [str(directory.id) for directory in directory_all_sub]
+        directory_id_list.append(args['directory_id'])
+        filters.append(App.directory_id.in_(directory_id_list))
+
         if args["mode"] == "workflow":
             filters.append(App.mode.in_([AppMode.WORKFLOW.value, AppMode.COMPLETION.value]))
         elif args["mode"] == "chat":
@@ -44,9 +53,26 @@ class AppService:
             filters.append(App.mode == AppMode.AGENT_CHAT.value)
         elif args["mode"] == "channel":
             filters.append(App.mode == AppMode.CHANNEL.value)
+        # [Starry] directory app
+        elif args['mode'] == 'completion':
+            filters.append(App.mode == AppMode.COMPLETION.value)
+        elif args['mode'] == 'advanced-chat':
+            filters.append(App.mode == AppMode.ADVANCED_CHAT.value)
 
-        if args.get("is_created_by_me", False):
-            filters.append(App.created_by == user_id)
+        # [Starry] directory app
+        # if args.get("is_created_by_me", False):
+        #     filters.append(App.created_by == user_id)
+        if args.get('account_id'):
+            filters.append(App.account_id == args['account_id'])
+        if args.get('created_start'):
+            filters.append(App.created_at >= args['created_start'])
+        if args.get('created_end'):
+            filters.append(App.created_at < args['created_end'])
+        if args.get('is_publish'):
+            if args['is_publish'] == 1:
+                filters.append(App.is_public == True)
+            elif args['is_publish'] == 0:
+                filters.append(App.is_public == False)
         if args.get("name"):
             name = args["name"][:30]
             filters.append(App.name.ilike(f"%{name}%"))
@@ -57,12 +83,22 @@ class AppService:
             else:
                 return None
 
+        # app_models = db.paginate(
+        #     db.select(App).where(*filters).order_by(App.created_at.desc()),
+        #     page=args["page"],
+        #     per_page=args["limit"],
+        #     error_out=False,
+        # )
+        order_by_expression = App.created_at.desc()
+        if args.get('order_by'):
+            order_by_expression = App.created_at.desc() if args['order_by'] == 'desc' else App.created_at.asc()
         app_models = db.paginate(
-            db.select(App).where(*filters).order_by(App.created_at.desc()),
-            page=args["page"],
-            per_page=args["limit"],
-            error_out=False,
+            db.select(App).where(*filters).order_by(order_by_expression),
+            page=args['page'],
+            per_page=args['limit'],
+            error_out=False
         )
+        logging.info(f"Total items: {app_models.total}")
 
         return app_models
 
@@ -134,6 +170,9 @@ class AppService:
         app.api_rpm = args.get("api_rpm", 0)
         app.created_by = account.id
         app.updated_by = account.id
+        # [Starry] directory app
+        app.directory_id = args['directory_id']
+        app.account_id = account.id
 
         db.session.add(app)
         db.session.flush()

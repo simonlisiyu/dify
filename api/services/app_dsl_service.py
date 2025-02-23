@@ -18,6 +18,9 @@ from factories import variable_factory
 from models import Account, App, AppMode
 from models.model import AppModelConfig
 from services.workflow_service import WorkflowService
+# [Starry] directory app
+from extensions.ext_database import db
+current_dsl_version = "0.1.0"
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +96,8 @@ class AppDslService:
         icon: Optional[str] = None,
         icon_background: Optional[str] = None,
         app_id: Optional[str] = None,
+        # [Starry] directory app
+        directory_id: str,
     ) -> Import:
         """Import an app from YAML content or URL."""
         import_id = str(uuid.uuid4())
@@ -241,6 +246,8 @@ class AppDslService:
                 icon_type=icon_type,
                 icon=icon,
                 icon_background=icon_background,
+                # [Starry] directory app
+                directory_id=directory_id,
             )
 
             return Import(
@@ -336,6 +343,8 @@ class AppDslService:
         icon_type: Optional[str] = None,
         icon: Optional[str] = None,
         icon_background: Optional[str] = None,
+        # [Starry] directory app
+        directory_id: str,
     ) -> App:
         """Create a new app or update an existing one."""
         app_data = data.get("app", {})
@@ -379,6 +388,9 @@ class AppDslService:
             app.use_icon_as_answer_icon = app_data.get("use_icon_as_answer_icon", False)
             app.created_by = account.id
             app.updated_by = account.id
+            # [Starry] directory app
+            app.account_id = account.id
+            app.directory_id = directory_id
 
             self._session.add(app)
             self._session.commit()
@@ -492,3 +504,41 @@ class AppDslService:
             raise ValueError("Missing app configuration, please check.")
 
         export_data["model_config"] = app_model_config.to_dict()
+
+    # [Starry] directory app
+    @classmethod
+    def export_dsl_list(cls, app_ids: list[str], include_secret: bool = False) -> list[str]:
+        """
+        Export a list of apps
+        :param app_ids: List of app_ids
+        :param include_secret: Whether to include secrets in the export
+        :return: List of exported apps in YAML format
+        """
+        filters = [
+            App.id.in_(app_ids)
+        ]
+        apps = db.session.query(App).filter(*filters).all()
+
+        exported_apps = []
+        for app_model in apps:
+            app_mode = AppMode.value_of(app_model.mode)
+            export_data = {
+                "version": current_dsl_version,
+                "kind": "app",
+                "app": {
+                    "name": app_model.name,
+                    "mode": app_model.mode,
+                    "icon": app_model.icon,
+                    "icon_background": app_model.icon_background,
+                    "description": app_model.description
+                }
+            }
+
+            if app_mode in [AppMode.ADVANCED_CHAT, AppMode.WORKFLOW]:
+                cls._append_workflow_export_data(export_data=export_data, app_model=app_model, include_secret=include_secret)
+            else:
+                cls._append_model_config_export_data(export_data, app_model)
+
+            exported_apps.append(yaml.dump(export_data))
+
+        return exported_apps

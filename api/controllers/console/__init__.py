@@ -165,5 +165,6 @@ api.add_resource(
 # Import tag controllers
 from .tag import tags
 
+# [Starry] directory add
 # Import workspace controllers
-from .workspace import account, load_balancing_config, members, model_providers, models, tool_providers, workspace
+from .workspace import account, load_balancing_config, members, model_providers, models, tool_providers, workspace, directory
