@@ -41,11 +41,14 @@ class LoginApi(Resource):
     def post(self):
         """Authenticate user and login."""
         parser = reqparse.RequestParser()
-        parser.add_argument("email", type=email, required=True, location="json")
+        # [Starry] directory user
+        parser.add_argument("email", type=str, required=True, location="json")
+        # parser.add_argument("email", type=email, required=True, location="json")
         parser.add_argument("password", type=valid_password, required=True, location="json")
         parser.add_argument("remember_me", type=bool, required=False, default=False, location="json")
         parser.add_argument("invite_token", type=str, required=False, default=None, location="json")
-        parser.add_argument("language", type=str, required=False, default="en-US", location="json")
+        parser.add_argument("language", type=str, required=False, default="zh-Hans", location="json")
+        # parser.add_argument("language", type=str, required=False, default="en-US", location="json")
         args = parser.parse_args()
 
         if dify_config.BILLING_ENABLED and BillingService.is_email_in_freeze(args["email"]):
@@ -112,8 +115,10 @@ class ResetPasswordSendEmailApi(Resource):
     @setup_required
     def post(self):
         parser = reqparse.RequestParser()
-        parser.add_argument("email", type=email, required=True, location="json")
-        parser.add_argument("language", type=str, required=False, location="json")
+        parser.add_argument("email", type=str, required=True, location="json")
+        parser.add_argument("language", type=str, required=False, default="zh-Hans", location="json")
+        # parser.add_argument("email", type=email, required=True, location="json")
+        # parser.add_argument("language", type=str, required=False, location="json")
         args = parser.parse_args()
 
         if args["language"] is not None and args["language"] == "zh-Hans":
@@ -139,8 +144,10 @@ class EmailCodeLoginSendEmailApi(Resource):
     @setup_required
     def post(self):
         parser = reqparse.RequestParser()
-        parser.add_argument("email", type=email, required=True, location="json")
-        parser.add_argument("language", type=str, required=False, location="json")
+        parser.add_argument("email", type=str, required=True, location="json")
+        parser.add_argument("language", type=str, required=False, default="zh-Hans", location="json")
+        # parser.add_argument("email", type=email, required=True, location="json")
+        # parser.add_argument("language", type=str, required=False, location="json")
         args = parser.parse_args()
 
         ip_address = extract_remote_ip(request)

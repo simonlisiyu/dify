@@ -56,6 +56,8 @@ from tasks.mail_account_deletion_task import send_account_deletion_verification_
 from tasks.mail_email_code_login import send_email_code_login_mail_task
 from tasks.mail_invite_member_task import send_invite_member_mail_task
 from tasks.mail_reset_password_task import send_reset_password_mail_task
+# [Starry] directory user
+from flask_login import current_user
 
 
 class TokenPair(BaseModel):
@@ -829,6 +831,14 @@ class TenantService:
 
         return cast(dict, tenant.custom_config_dict)
 
+    # [Starry] directory user
+    @staticmethod
+    def get_current_tenant_by_id(tenant_id: str):
+        tenant = Tenant.query.filter_by(id=tenant_id,).first()
+        if not tenant:
+            raise TenantNotFoundError(f"Tenant not found for id: {tenant_id}.")
+        return tenant
+
 
 class RegisterService:
     @classmethod
@@ -878,6 +888,8 @@ class RegisterService:
         cls,
         email,
         name,
+        # [Starry] directory user
+        role,
         password: Optional[str] = None,
         open_id: Optional[str] = None,
         provider: Optional[str] = None,
@@ -898,6 +910,9 @@ class RegisterService:
             )
             account.status = AccountStatus.ACTIVE.value if not status else status.value
             account.initialized_at = datetime.now(UTC).replace(tzinfo=None)
+            # [Starry] directory user
+            tenant = TenantService.get_current_tenant_by_id(current_user.current_tenant_id)
+            TenantService.create_tenant_member(tenant, account, role=role)
 
             if open_id is not None and provider is not None:
                 AccountService.link_account_integrate(provider, open_id, account)

@@ -1,7 +1,7 @@
 import json
 import logging
 from datetime import UTC, datetime
-from typing import Optional, cast
+from typing import Optional, cast, List
 
 from flask_login import current_user  # type: ignore
 from flask_sqlalchemy.pagination import Pagination
@@ -251,6 +251,48 @@ class AppService:
             app = ModifiedApp(app)
 
         return app
+
+    # [Starry] directory installed app
+    def get_apps(self, tenant_id: str, args: dict) -> List[App] | None:
+        """
+        Get app list
+        :param tenant_id: tenant id
+        :param args: request args
+        :return:
+        """
+        filters = [
+            App.is_universal == False
+        ]
+
+        if args['mode'] == 'workflow':
+            filters.append(App.mode == AppMode.WORKFLOW.value)
+        elif args['mode'] == 'chat':
+            filters.append(App.mode == AppMode.CHAT.value)
+        elif args['mode'] == 'agent-chat':
+            filters.append(App.mode == AppMode.AGENT_CHAT.value)
+        elif args['mode'] == 'completion':
+            filters.append(App.mode == AppMode.COMPLETION.value)
+        elif args['mode'] == 'advanced-chat':
+            filters.append(App.mode == AppMode.ADVANCED_CHAT.value)
+
+        if args.get('name'):
+            name = args['name'][:30]
+            filters.append(App.name.ilike(f'%{name}%'))
+        if args.get('account_id'):
+            account_id = args['account_id']
+            filters.append(App.account_id == account_id)
+        if args.get('tag_ids'):
+            target_ids = TagService.get_target_ids_by_tag_ids('app',
+                                                              tenant_id,
+                                                              args['tag_ids'])
+            if target_ids:
+                filters.append(App.id.in_(target_ids))
+            else:
+                return None
+
+        apps = db.session.query(App).filter(*filters).all()
+
+        return apps
 
     def update_app(self, app: App, args: dict) -> App:
         """

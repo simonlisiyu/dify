@@ -578,16 +578,42 @@ class InstalledApp(db.Model):  # type: ignore[name-defined]
     is_pinned = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
     last_used_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, server_default=func.current_timestamp())
+    # [Starry] directory installed app
+    mode = "chat"
+    conversation_account_count = 0
+    conversation_count = 0
+    favourite_account_count = 0
+    is_favourite = False
+    app = None
 
-    @property
-    def app(self):
-        app = db.session.query(App).filter(App.id == self.app_id).first()
-        return app
+    # [Starry] directory installed app
+    # @property
+    # def app(self):
+    #     app = db.session.query(App).filter(App.id == self.app_id).first()
+    #     return app
 
     @property
     def tenant(self):
         tenant = db.session.query(Tenant).filter(Tenant.id == self.tenant_id).first()
         return tenant
+
+
+# [Starry] directory installed app
+class InstalledAppFavourite(db.Model):
+    __tablename__ = 'installed_apps_favourite'
+    __table_args__ = (
+        db.PrimaryKeyConstraint('id', name='faverite_app_pkey'),
+        db.Index('installed_apps_faverite_account_id_idx', 'account_id'),
+        db.UniqueConstraint('account_id', 'installed_app_id', name='unique_faverite_app')
+    )
+
+    id = db.Column(StringUUID, server_default=db.text('uuid_generate_v4()'))
+    account_id = db.Column(StringUUID, nullable=False)
+    app_id = db.Column(StringUUID, nullable=False)
+    installed_app_id = db.Column(StringUUID, nullable=False)
+    is_pinned = db.Column(db.Boolean, nullable=False, server_default=db.text('false'))
+    last_used_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.text('CURRENT_TIMESTAMP(0)'))
 
 
 class Conversation(db.Model):  # type: ignore[name-defined]

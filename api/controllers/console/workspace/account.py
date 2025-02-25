@@ -21,9 +21,45 @@ from fields.member_fields import account_fields
 from libs.helper import TimestampField, timezone
 from libs.login import login_required
 from models import AccountIntegrate, InvitationCode
-from services.account_service import AccountService
+from services.account_service import AccountService, RegisterService
 from services.billing_service import BillingService
 from services.errors.account import CurrentPasswordIncorrectError as ServiceCurrentPasswordIncorrectError
+# [Starry] directory user
+from werkzeug.exceptions import Forbidden
+
+
+# [Starry] directory user
+class AccountApi(Resource):
+    @login_required
+    @marshal_with(account_fields)
+    def post(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('email', type=str, required=True, location='json')
+        parser.add_argument('name', type=str, required=True, location='json')
+        parser.add_argument('password', type=str, required=True, location='json')
+        parser.add_argument('role', type=str, required=True, location='json')
+        args = parser.parse_args()
+
+        # Validate account name length
+        if len(args['email']) < 3 or len(args['email']) > 40:
+            raise ValueError(
+                "Account username must be between 3 and 40 characters.")
+
+        # Validate password length
+        if len(args['password']) < 8:
+            raise ValueError(
+                "Account password must be longer 8 characters.")
+
+        try:
+            new_account = RegisterService.register(email=args['email'],
+                                                   name=args['name'],
+                                                   password=args['password'],
+                                                   role=args['role']
+                                                   )
+        except Exception as e:
+            raise Forbidden("change failed, please change another name. ")
+
+        return new_account
 
 
 class AccountInitApi(Resource):
