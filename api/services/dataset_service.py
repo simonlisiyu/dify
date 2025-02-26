@@ -69,12 +69,39 @@ from tasks.enable_segments_to_index_task import enable_segments_to_index_task
 from tasks.recover_document_indexing_task import recover_document_indexing_task
 from tasks.retry_document_indexing_task import retry_document_indexing_task
 from tasks.sync_website_document_indexing_task import sync_website_document_indexing_task
+# [Starry] directory dataset
+from services.directory_service import DirectoryService
 
 
 class DatasetService:
+    # [Starry] directory dataset
     @staticmethod
-    def get_datasets(page, per_page, tenant_id=None, user=None, search=None, tag_ids=None, include_all=False):
-        query = Dataset.query.filter(Dataset.tenant_id == tenant_id).order_by(Dataset.created_at.desc())
+    def get_datasets(page, per_page, tenant_id=None, user=None, search=None, tag_ids=None, include_all=False,
+                     directory_id=None, created_start=None, created_end=None, account_id=None, order_by=None):
+        # [Starry] directory dataset
+        logging.info(f"per_page={per_page}")
+        logging.info(f"directory_id={directory_id}")
+        logging.info(f"tenant_id={tenant_id}")
+        logging.info(f"tag_ids={tag_ids}")
+        logging.info(f"user={user}")
+        order_by_expression = Dataset.created_at.desc()
+        if order_by is not None:
+            order_by_expression = Dataset.created_at.desc() if order_by == 'desc' else Dataset.created_at.asc()
+
+        # query = Dataset.query.filter(Dataset.tenant_id == tenant_id).order_by(Dataset.created_at.desc())
+        query = Dataset.query.filter(Dataset.tenant_id == tenant_id).order_by(order_by_expression)
+        directory_service = DirectoryService()
+        directory_all_sub = directory_service.get_sub_directorys('knowledge', directory_id)
+        directory_id_list = [str(directory.id) for directory in directory_all_sub]
+        directory_id_list.append(directory_id)
+        query.filter(Dataset.directory_id.in_(directory_id_list))
+
+        if created_start is not None:
+            query.filter(Dataset.created_at >= created_start)
+        if created_end is not None:
+            query.filter(Dataset.created_at < created_end)
+        if account_id is not None:
+            query.filter(Dataset.created_by == account_id)
 
         if user:
             # get permitted dataset ids
@@ -127,7 +154,7 @@ class DatasetService:
                 return [], 0
 
         datasets = query.paginate(page=page, per_page=per_page, max_per_page=100, error_out=False)
-
+        logging.info(f"datasets.size={datasets.total}")
         return datasets.items, datasets.total
 
     @staticmethod
@@ -166,6 +193,8 @@ class DatasetService:
         provider: str = "vendor",
         external_knowledge_api_id: Optional[str] = None,
         external_knowledge_id: Optional[str] = None,
+        # [Starry] directory dataset
+        directory_id = None,
     ):
         # check if dataset name already exists
         if Dataset.query.filter_by(name=name, tenant_id=tenant_id).first():
@@ -186,6 +215,8 @@ class DatasetService:
         dataset.embedding_model = embedding_model.model if embedding_model else None
         dataset.permission = permission or DatasetPermissionEnum.ONLY_ME
         dataset.provider = provider
+        # [Starry] directory dataset
+        dataset.directory_id = directory_id
         db.session.add(dataset)
         db.session.flush()
 
