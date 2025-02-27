@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 
 from core.tools.entities.common_entities import I18nObject
@@ -16,10 +17,15 @@ from core.tools.tool.api_tool import ApiTool
 from core.tools.tool.tool import Tool
 from extensions.ext_database import db
 from models.tools import ApiToolProvider
+# [Starry] directory tool
+from models.model import Directory
 
 
 class ApiToolProviderController(ToolProviderController):
     provider_id: str
+    # [Starry] directory tool
+    directory_id: str
+    directory_name: str
 
     @staticmethod
     def from_db(db_provider: ApiToolProvider, auth_type: ApiProviderAuthType) -> "ApiToolProviderController":
@@ -70,6 +76,15 @@ class ApiToolProviderController(ToolProviderController):
         else:
             raise ValueError(f"invalid auth type {auth_type}")
         user_name = db_provider.user.name if db_provider.user_id and db_provider.user is not None else ""
+
+        # [Starry] directory tool
+        directory_name = ""
+        directory = db.session.query(Directory).filter(
+            Directory.id == db_provider.directory_id
+        ).first()
+        if directory:
+            directory_name = directory.name
+
         return ApiToolProviderController(
             identity=ToolProviderIdentity(
                 author=user_name,
@@ -81,6 +96,8 @@ class ApiToolProviderController(ToolProviderController):
             credentials_schema=credentials_schema,
             provider_id=db_provider.id or "",
             tools=None,
+            directory_id=db_provider.directory_id,
+            directory_name=directory_name,
         )
 
     @property

@@ -4,7 +4,7 @@ from flask import send_file
 from flask_login import current_user  # type: ignore
 from flask_restful import Resource, reqparse  # type: ignore
 from sqlalchemy.orm import Session
-from werkzeug.exceptions import Forbidden
+from werkzeug.exceptions import Forbidden, abort
 
 from configs import dify_config
 from controllers.console import api
@@ -18,6 +18,15 @@ from services.tools.builtin_tools_manage_service import BuiltinToolManageService
 from services.tools.tool_labels_service import ToolLabelsService
 from services.tools.tools_manage_service import ToolCommonService
 from services.tools.workflow_tools_manage_service import WorkflowToolManageService
+# [Starry] directory tool
+import uuid
+
+
+def uuid_str(value):
+    try:
+        return str(uuid.UUID(value))
+    except ValueError:
+        abort(400, message="Invalid UUID format in parent_id.")
 
 
 class ToolProviderListApi(Resource):
@@ -37,9 +46,18 @@ class ToolProviderListApi(Resource):
             nullable=True,
             location="args",
         )
+        # [Starry] directory tool
+        req.add_argument('directory_id', type=uuid_str, required=True, nullable=False, location='args')
+        req.add_argument('created_start', type=str, location='args', required=False)
+        req.add_argument('created_end', type=str, location='args', required=False)
+        req.add_argument('account_id', type=str, location='args', required=False)
+        req.add_argument('order_by', type=str, choices=['desc', 'asc'], location='args', required=False)
         args = req.parse_args()
 
-        return ToolCommonService.list_tool_providers(user_id, tenant_id, args.get("type", None))
+        # return ToolCommonService.list_tool_providers(user_id, tenant_id, args.get("type", None))
+        return ToolCommonService.list_tool_providers(user_id, tenant_id, args.get('type', None), args.get('directory_id', None),
+                                                     args.get('created_start', None), args.get('created_end', None),
+                                                     args.get('account_id', None), args.get('order_by', None))
 
 
 class ToolBuiltinProviderListToolsApi(Resource):

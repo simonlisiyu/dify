@@ -15,7 +15,7 @@ from core.tools.tool.tool import Tool
 from core.tools.tool.workflow_tool import WorkflowTool
 from core.tools.utils.workflow_configuration_sync import WorkflowToolConfigurationUtils
 from extensions.ext_database import db
-from models.model import App, AppMode
+from models.model import App, AppMode, Directory
 from models.tools import WorkflowToolProvider
 from models.workflow import Workflow
 
@@ -31,6 +31,10 @@ VARIABLE_TO_PARAMETER_TYPE_MAPPING = {
 
 class WorkflowToolProviderController(ToolProviderController):
     provider_id: str
+    # [Starry] directory tool
+    directory_id: str
+    directory_name: str
+    created_at_str: str
 
     @classmethod
     def from_db(cls, db_provider: WorkflowToolProvider) -> "WorkflowToolProviderController":
@@ -38,6 +42,18 @@ class WorkflowToolProviderController(ToolProviderController):
 
         if not app:
             raise ValueError("app not found")
+
+        # [Starry] directory tool
+        directory_name = ""
+        directory = db.session.query(Directory).filter(
+            Directory.id == db_provider.directory_id
+        ).first()
+        if directory:
+            directory_name = directory.name
+
+        created_at_str = ""
+        if db_provider.created_at:
+            created_at_str = db_provider.created_at_str
 
         controller = WorkflowToolProviderController.model_validate(
             {
@@ -50,6 +66,9 @@ class WorkflowToolProviderController(ToolProviderController):
                 },
                 "credentials_schema": {},
                 "provider_id": db_provider.id or "",
+                'directory_id': db_provider.directory_id,
+                'directory_name': directory_name,
+                'created_at_str': created_at_str,
             }
         )
 

@@ -30,6 +30,8 @@ from core.workflow.nodes.tool.entities import ToolEntity
 from extensions.ext_database import db
 from models.tools import ApiToolProvider, BuiltinToolProvider, WorkflowToolProvider
 from services.tools.tools_transform_service import ToolTransformService
+# [Starry] directory tool
+from services.directory_service import DirectoryService
 
 logger = logging.getLogger(__name__)
 
@@ -445,9 +447,11 @@ class ToolManager:
 
     @classmethod
     def user_list_providers(
-        cls, user_id: str, tenant_id: str, typ: UserToolProviderTypeLiteral
+        cls, user_id: str, tenant_id: str, typ: UserToolProviderTypeLiteral,
+            directory_id=None, created_start=None, created_end=None, account_id=None, order_by=None
     ) -> list[UserToolProvider]:
         result_providers: dict[str, UserToolProvider] = {}
+        logging.info(f"typ={typ}")
 
         filters = []
         if not typ:
@@ -492,14 +496,34 @@ class ToolManager:
         # get db api providers
 
         if "api" in filters:
+            # [Starry] directory tool
+            directory_service = DirectoryService()
+            directory_all_sub = directory_service.get_sub_directorys('tool', directory_id)
+            directory_id_list = [str(directory.id) for directory in directory_all_sub]
+            directory_id_list.append(directory_id)
+
+            query_filters = [ApiToolProvider.tenant_id == tenant_id,
+                             ApiToolProvider.directory_id.in_(directory_id_list)]
+            if created_start is not None and created_start != '':
+                query_filters.append(ApiToolProvider.created_at >= created_start)
+            if created_end is not None and created_end != '':
+                query_filters.append(ApiToolProvider.created_at <= created_end)
+            if account_id is not None and account_id != '':
+                query_filters.append(ApiToolProvider.user_id == account_id)
+
+            order_by_expression = ApiToolProvider.created_at.desc()
+            if order_by is not None:
+                order_by_expression = ApiToolProvider.created_at.desc() if order_by == 'desc' else ApiToolProvider.created_at.asc()
+
             db_api_providers: list[ApiToolProvider] = (
-                db.session.query(ApiToolProvider).filter(ApiToolProvider.tenant_id == tenant_id).all()
+                db.session.query(ApiToolProvider).filter(*query_filters).order_by(order_by_expression).all()
             )
 
             api_provider_controllers: list[dict[str, Any]] = [
                 {"provider": provider, "controller": ToolTransformService.api_provider_to_controller(provider)}
                 for provider in db_api_providers
             ]
+            logger.info(f"api_provider_controllers.size = {len(api_provider_controllers)}")
 
             # get labels
             labels = ToolLabelManager.get_tools_labels([x["controller"] for x in api_provider_controllers])
@@ -514,10 +538,34 @@ class ToolManager:
                 result_providers[f"api_provider.{user_provider.name}"] = user_provider
 
         if "workflow" in filters:
+            # [Starry] directory tool
+            order_by_expression = WorkflowToolProvider.created_at.desc()
+            if order_by is not None:
+                order_by_expression = WorkflowToolProvider.created_at.desc() if order_by == 'desc' else WorkflowToolProvider.created_at.asc()
+
+            workflow_providers_filters = [
+                WorkflowToolProvider.tenant_id == tenant_id,
+                ]
+            directory_service = DirectoryService()
+            directory_all_sub = directory_service.get_sub_directorys('tool', directory_id)
+            directory_id_list = [str(directory.id) for directory in directory_all_sub]
+            directory_id_list.append(directory_id)
+            workflow_providers_filters.append(WorkflowToolProvider.directory_id.in_(directory_id_list))
+
+            if created_start is not None and created_start != '':
+                workflow_providers_filters.append(WorkflowToolProvider.created_at >= created_start)
+            if created_end is not None and created_end != '':
+                workflow_providers_filters.append(ApiToolProvider.created_at <= created_end)
+            if account_id is not None and account_id != '':
+                workflow_providers_filters.append(WorkflowToolProvider.user_id == account_id)
+
+            workflow_providers: list[WorkflowToolProvider] = db.session.query(WorkflowToolProvider). \
+                filter(*workflow_providers_filters).order_by(order_by_expression).all()
+
             # get workflow providers
-            workflow_providers: list[WorkflowToolProvider] = (
-                db.session.query(WorkflowToolProvider).filter(WorkflowToolProvider.tenant_id == tenant_id).all()
-            )
+            # workflow_providers: list[WorkflowToolProvider] = (
+            #     db.session.query(WorkflowToolProvider).filter(WorkflowToolProvider.tenant_id == tenant_id).all()
+            # )
 
             workflow_provider_controllers: list[WorkflowToolProviderController] = []
             for provider in workflow_providers:

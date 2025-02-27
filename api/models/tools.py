@@ -122,6 +122,13 @@ class ApiToolProvider(db.Model):  # type: ignore[name-defined]
 
     created_at = db.Column(db.DateTime, nullable=False, server_default=func.current_timestamp())
     updated_at = db.Column(db.DateTime, nullable=False, server_default=func.current_timestamp())
+    # [Starry] directory tool
+    directory_id = db.Column(StringUUID, nullable=False)
+    account_id = db.Column(StringUUID, nullable=False)
+
+    @property
+    def created_at_str(self):
+        return self.created_at.strftime('%Y-%m-%d %H:%M:%S')
 
     @property
     def schema_type(self) -> ApiProviderSchemaType:
@@ -200,6 +207,13 @@ class WorkflowToolProvider(db.Model):  # type: ignore[name-defined]
 
     created_at = db.Column(db.DateTime, nullable=False, server_default=func.current_timestamp())
     updated_at = db.Column(db.DateTime, nullable=False, server_default=func.current_timestamp())
+    # [Starry] directory tool
+    directory_id = db.Column(StringUUID, nullable=False)
+    account_id = db.Column(StringUUID, nullable=False)
+
+    @property
+    def created_at_str(self):
+        return self.created_at.strftime('%Y-%m-%d %H:%M:%S')
 
     @property
     def user(self) -> Account | None:
