@@ -1,6 +1,7 @@
+# [Starry] directory config
 language_timezone_mapping = {
-    "en-US": "America/New_York",
     "zh-Hans": "Asia/Shanghai",
+    "en-US": "America/New_York",
     "zh-Hant": "Asia/Taipei",
     "pt-BR": "America/Sao_Paulo",
     "es-ES": "Europe/Madrid",

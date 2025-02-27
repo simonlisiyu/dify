@@ -111,6 +111,8 @@ class KnowledgeConfig(BaseModel):
     embedding_model_provider: Optional[str] = None
     name: Optional[str] = None
     metadata: Optional[MetaDataConfig] = None
+    # [Starry] directory dataset
+    directory_id: str = None
 
 
 class SegmentUpdateArgs(BaseModel):

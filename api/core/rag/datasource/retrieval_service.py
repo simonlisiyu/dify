@@ -16,6 +16,9 @@ from extensions.ext_database import db
 from models.dataset import ChildChunk, Dataset, DocumentSegment
 from models.dataset import Document as DatasetDocument
 from services.external_knowledge_service import ExternalDatasetService
+# # [Starry] directory rag
+import jieba
+import logging
 
 default_retrieval_model = {
     "search_method": RetrievalMethod.SEMANTIC_SEARCH.value,
@@ -25,19 +28,44 @@ default_retrieval_model = {
     "score_threshold_enabled": False,
 }
 
+# [Starry] directory rag
+logger = logging.getLogger(__name__)
+# stop words
+stop_words = []
+try:
+    with open('/app/data/stopwords.txt', 'r') as file:
+        stop_words = file.read().splitlines()
+except FileNotFoundError:
+    logger.info("/app/data/stopwords.txt File not found.")
+except IOError as e:
+    logger.info("/app/data/stopwords.txt An error occurred while reading the file:", e)
+# custom words
+try:
+    jieba.load_userdict(r"/app/data/userdict.txt")
+except:
+    logger.info("/app/data/userdict.txt File failed.")
+# synonym words
+synonym_dict = {}
+try:
+    for line in open("/app/data/synonym.txt", "r", encoding='utf-8'):
+        words = line.split(" ")
+        synonym_dict[words[0]] = words[1]
+except:
+    logger.info("/app/data/synonym.txt File failed.")
+
 
 class RetrievalService:
     @classmethod
     def retrieve(
-        cls,
-        retrieval_method: str,
-        dataset_id: str,
-        query: str,
-        top_k: int,
-        score_threshold: Optional[float] = 0.0,
-        reranking_model: Optional[dict] = None,
-        reranking_mode: str = "reranking_model",
-        weights: Optional[dict] = None,
+            cls,
+            retrieval_method: str,
+            dataset_id: str,
+            query: str,
+            top_k: int,
+            score_threshold: Optional[float] = 0.0,
+            reranking_model: Optional[dict] = None,
+            reranking_mode: str = "reranking_model",
+            weights: Optional[dict] = None,
     ):
         if not query:
             return []
@@ -135,7 +163,7 @@ class RetrievalService:
 
     @classmethod
     def keyword_search(
-        cls, flask_app: Flask, dataset_id: str, query: str, top_k: int, all_documents: list, exceptions: list
+            cls, flask_app: Flask, dataset_id: str, query: str, top_k: int, all_documents: list, exceptions: list
     ):
         with flask_app.app_context():
             try:
@@ -152,16 +180,16 @@ class RetrievalService:
 
     @classmethod
     def embedding_search(
-        cls,
-        flask_app: Flask,
-        dataset_id: str,
-        query: str,
-        top_k: int,
-        score_threshold: Optional[float],
-        reranking_model: Optional[dict],
-        all_documents: list,
-        retrieval_method: str,
-        exceptions: list,
+            cls,
+            flask_app: Flask,
+            dataset_id: str,
+            query: str,
+            top_k: int,
+            score_threshold: Optional[float],
+            reranking_model: Optional[dict],
+            all_documents: list,
+            retrieval_method: str,
+            exceptions: list,
     ):
         with flask_app.app_context():
             try:
@@ -181,10 +209,10 @@ class RetrievalService:
 
                 if documents:
                     if (
-                        reranking_model
-                        and reranking_model.get("reranking_model_name")
-                        and reranking_model.get("reranking_provider_name")
-                        and retrieval_method == RetrievalMethod.SEMANTIC_SEARCH.value
+                            reranking_model
+                            and reranking_model.get("reranking_model_name")
+                            and reranking_model.get("reranking_provider_name")
+                            and retrieval_method == RetrievalMethod.SEMANTIC_SEARCH.value
                     ):
                         data_post_processor = DataPostProcessor(
                             str(dataset.tenant_id), RerankMode.RERANKING_MODEL.value, reranking_model, None, False
@@ -204,16 +232,16 @@ class RetrievalService:
 
     @classmethod
     def full_text_index_search(
-        cls,
-        flask_app: Flask,
-        dataset_id: str,
-        query: str,
-        top_k: int,
-        score_threshold: Optional[float],
-        reranking_model: Optional[dict],
-        all_documents: list,
-        retrieval_method: str,
-        exceptions: list,
+            cls,
+            flask_app: Flask,
+            dataset_id: str,
+            query: str,
+            top_k: int,
+            score_threshold: Optional[float],
+            reranking_model: Optional[dict],
+            all_documents: list,
+            retrieval_method: str,
+            exceptions: list,
     ):
         with flask_app.app_context():
             try:
@@ -225,13 +253,32 @@ class RetrievalService:
                     dataset=dataset,
                 )
 
+                # [Starry] directory rag
+                logger.info(f"query: {query}")
+                # split query
+                if len(query) > 4:
+                    # seg_list = jieba.cut_for_search(query)  # 使用搜索引擎模式进行分词
+                    seg_list = jieba.cut(query, cut_all=False)  # 使用精确模式进行分词
+                    # query = "/".join(seg_list)
+                    # logger.info(f"new_query: {query}")
+                    logger.info(f"stop_words.len: {len(stop_words)}")
+                    # stop words
+                    filtered_list = [seg for seg in seg_list if seg not in stop_words]
+                    # synonym words
+                    final_list = filtered_list
+                    for word in filtered_list:
+                        if word in synonym_dict:
+                            final_list.append(synonym_dict[word])
+                    query = "/".join(final_list)
+                    logger.info(f"stopwords_filter_query: {query}")
+
                 documents = vector_processor.search_by_full_text(cls.escape_query_for_search(query), top_k=top_k)
                 if documents:
                     if (
-                        reranking_model
-                        and reranking_model.get("reranking_model_name")
-                        and reranking_model.get("reranking_provider_name")
-                        and retrieval_method == RetrievalMethod.FULL_TEXT_SEARCH.value
+                            reranking_model
+                            and reranking_model.get("reranking_model_name")
+                            and reranking_model.get("reranking_provider_name")
+                            and retrieval_method == RetrievalMethod.FULL_TEXT_SEARCH.value
                     ):
                         data_post_processor = DataPostProcessor(
                             str(dataset.tenant_id), RerankMode.RERANKING_MODEL.value, reranking_model, None, False

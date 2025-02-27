@@ -37,7 +37,8 @@ class SetupApi(Resource):
             raise NotInitValidateError()
 
         parser = reqparse.RequestParser()
-        parser.add_argument("email", type=email, required=True, location="json")
+        # parser.add_argument("email", type=email, required=True, location="json")
+        parser.add_argument("email", type=StrLen(30), required=True, location="json")
         parser.add_argument("name", type=StrLen(30), required=True, location="json")
         parser.add_argument("password", type=valid_password, required=True, location="json")
         args = parser.parse_args()

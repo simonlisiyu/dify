@@ -30,8 +30,10 @@ class ForgotPasswordSendEmailApi(Resource):
     @setup_required
     def post(self):
         parser = reqparse.RequestParser()
-        parser.add_argument("email", type=email, required=True, location="json")
-        parser.add_argument("language", type=str, required=False, location="json")
+        # [Starry] directory user
+        # parser.add_argument("email", type=email, required=True, location="json")
+        parser.add_argument("email", type=str, required=True, location="json")
+        parser.add_argument("language", type=str, required=False, default="zh-Hans", location="json")
         args = parser.parse_args()
 
         ip_address = extract_remote_ip(request)
