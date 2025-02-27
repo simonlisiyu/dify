@@ -27,8 +27,10 @@ from models import Account, App
 from services.app_dsl_service import AppDslService, ImportMode
 from services.app_service import AppService
 # [Starry] directory app
+import logging
 from services.directory_service import DirectoryService
 from services.recommended_app_service import RecommendedAppService
+from sqlalchemy.exc import PendingRollbackError
 
 ALLOW_CREATE_APP_MODES = ["chat", "agent-chat", "advanced-chat", "workflow", "completion"]
 
@@ -208,26 +210,30 @@ class AppCopyApi(Resource):
         parser.add_argument("directory_id", type=str, location="json")
         args = parser.parse_args()
 
-        with Session(db.engine) as session:
-            import_service = AppDslService(session)
-            yaml_content = import_service.export_dsl(app_model=app_model, include_secret=True)
-            account = cast(Account, current_user)
-            result = import_service.import_app(
-                account=account,
-                import_mode=ImportMode.YAML_CONTENT.value,
-                yaml_content=yaml_content,
-                name=args.get("name"),
-                description=args.get("description"),
-                icon_type=args.get("icon_type"),
-                icon=args.get("icon"),
-                icon_background=args.get("icon_background"),
-                # [Starry] directory app
-                directory_id=args["directory_id"],
-            )
-            session.commit()
+        try:
+            with Session(db.engine) as session:
+                import_service = AppDslService(session)
+                yaml_content = import_service.export_dsl(app_model=app_model, include_secret=True)
+                account = cast(Account, current_user)
+                result = import_service.import_app(
+                    account=account,
+                    import_mode=ImportMode.YAML_CONTENT.value,
+                    yaml_content=yaml_content,
+                    name=args.get("name"),
+                    description=args.get("description"),
+                    icon_type=args.get("icon_type"),
+                    icon=args.get("icon"),
+                    icon_background=args.get("icon_background"),
+                    # [Starry] directory app
+                    directory_id=args["directory_id"],
+                )
+                session.commit()
 
-            stmt = select(App).where(App.id == result.app_id)
-            app = session.scalar(stmt)
+                stmt = select(App).where(App.id == result.app_id)
+                app = session.scalar(stmt)
+        except PendingRollbackError as pre:
+            logging.error(f"An error occurred during database operation: {pre}")
+            raise BadRequest("create app failed, please change another app name.")
 
         return app, 201
 

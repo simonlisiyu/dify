@@ -19,7 +19,7 @@ from core.tools.utils.configuration import ToolParameterConfigurationManager
 from events.app_event import app_was_created
 from extensions.ext_database import db
 from models.account import Account
-from models.model import App, AppMode, AppModelConfig
+from models.model import App, AppMode, AppModelConfig, InstalledApp
 from models.tools import ApiToolProvider
 from services.tag_service import TagService
 from tasks.remove_app_and_related_data_task import remove_app_and_related_data_task
@@ -310,6 +310,9 @@ class AppService:
         app.use_icon_as_answer_icon = args.get("use_icon_as_answer_icon", False)
         app.updated_by = current_user.id
         app.updated_at = datetime.now(UTC).replace(tzinfo=None)
+        logging.info(f"use_icon_as_answer_icon={args.get('use_icon_as_answer_icon')}")
+        app.use_icon_as_answer_icon = False if app.use_icon_as_answer_icon is None else app.use_icon_as_answer_icon
+        logging.info(f"use_icon_as_answer_icon={app.use_icon_as_answer_icon}")
         db.session.commit()
 
         if app.max_active_requests is not None:
@@ -455,3 +458,18 @@ class AppService:
                         meta["tool_icons"][tool_name] = {"background": "#252525", "content": "\ud83d\ude01"}
 
         return meta
+
+    # [Starry] directory app
+    def change_app_position(self, app_id: str, position: int) -> None:
+        if position == 1:
+            app = App.query.filter_by(id=app_id).first()
+            app.is_public = True
+        elif position == 0:
+            app = App.query.filter_by(id=app_id).first()
+            app.is_public = False
+
+        installed_app = InstalledApp.query.filter_by(app_id=app_id).first()
+        installed_app.position = position
+
+        db.session.commit()
+

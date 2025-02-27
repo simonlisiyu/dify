@@ -94,6 +94,9 @@ class ToolTransformService:
             is_team_authorization=False,
             tools=[],
             labels=provider_controller.tool_labels,
+            directory_id='',
+            directory_name='',
+            created_at_str='',
         )
 
         # get credentials schema
