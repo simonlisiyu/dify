@@ -47,4 +47,11 @@ def init_app(app: DifyApp):
     app.register_blueprint(files_bp)
 
     app.register_blueprint(inner_api_bp)
+
+    # [Starry] directory outer api
+    CORS(
+        outer_api_bp,
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH"],
+    )
     app.register_blueprint(outer_api_bp)

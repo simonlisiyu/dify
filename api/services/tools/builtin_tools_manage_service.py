@@ -18,6 +18,8 @@ from core.tools.utils.configuration import ToolConfigurationManager
 from extensions.ext_database import db
 from models.tools import BuiltinToolProvider
 from services.tools.tools_transform_service import ToolTransformService
+# [Starry] directory tool
+from core.tools.tool_manager import ToolManager, BUILTIN_TOOL_LIST
 
 logger = logging.getLogger(__name__)
 
@@ -208,6 +210,9 @@ class BuiltinToolManageService:
         result: list[UserToolProvider] = []
 
         for provider_controller in provider_controllers:
+            # [Starry] directory tool
+            if provider_controller.identity.name not in BUILTIN_TOOL_LIST:
+                continue
             try:
                 # handle include, exclude
                 if is_filtered(

@@ -1,3 +1,7 @@
+# [Starry] directory outer api
+# __author__ "lisiyu"
+# date 2024/11/30
+
 from flask import Blueprint
 
 from libs.external_api import ExternalApi

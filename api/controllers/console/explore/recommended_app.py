@@ -7,6 +7,8 @@ from controllers.console.wraps import account_initialization_required
 from libs.helper import AppIconUrlField
 from libs.login import login_required
 from services.recommended_app_service import RecommendedAppService
+# [Starry] directory recommend app
+from constants.recommended_modes import modes
 
 app_fields = {
     "id": fields.String,
@@ -44,6 +46,8 @@ class RecommendedAppListApi(Resource):
         # language args
         parser = reqparse.RequestParser()
         parser.add_argument("language", type=str, location="args")
+        # [Starry] directory recommend app
+        parser.add_argument('mode', type=str, location='args')
         args = parser.parse_args()
 
         if args.get("language") and args.get("language") in languages:
@@ -53,7 +57,10 @@ class RecommendedAppListApi(Resource):
         else:
             language_prefix = languages[0]
 
-        return RecommendedAppService.get_recommended_apps_and_categories(language_prefix)
+        if args.get('mode') == "template":
+            return RecommendedAppService.get_template_apps_and_categories(language_prefix)
+        else:
+            return RecommendedAppService.get_recommended_apps_and_categories(language_prefix)
 
 
 class RecommendedAppApi(Resource):
@@ -61,7 +68,16 @@ class RecommendedAppApi(Resource):
     @account_initialization_required
     def get(self, app_id):
         app_id = str(app_id)
-        return RecommendedAppService.get_recommend_app_detail(app_id)
+        # [Starry] directory recommend app
+        # return RecommendedAppService.get_recommend_app_detail(app_id)
+        parser = reqparse.RequestParser()
+        parser.add_argument('mode', type=str, location='args')
+        args = parser.parse_args()
+
+        if args.get('mode') == "template":
+            return RecommendedAppService.get_template_app_detail(app_id)
+        else:
+            return RecommendedAppService.get_recommend_app_detail(app_id)
 
 
 api.add_resource(RecommendedAppListApi, "/explore/apps")

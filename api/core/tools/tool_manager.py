@@ -33,6 +33,8 @@ from services.tools.tools_transform_service import ToolTransformService
 # [Starry] directory tool
 from services.directory_service import DirectoryService
 
+BUILTIN_TOOL_LIST = ['time', 'maths', 'judge0ce', 'json_process', 'code', 'chart']
+
 logger = logging.getLogger(__name__)
 
 
@@ -474,24 +476,26 @@ class ToolManager:
 
             # append builtin providers
             for provider in builtin_providers:
-                # handle include, exclude
-                if provider.identity is None:
-                    continue
-                if is_filtered(
-                    include_set=cast(set[str], dify_config.POSITION_TOOL_INCLUDES_SET),
-                    exclude_set=cast(set[str], dify_config.POSITION_TOOL_EXCLUDES_SET),
-                    data=provider,
-                    name_func=lambda x: x.identity.name,
-                ):
-                    continue
+                # [Starry] directory tool
+                if provider.identity.name in BUILTIN_TOOL_LIST:
+                    # handle include, exclude
+                    if provider.identity is None:
+                        continue
+                    if is_filtered(
+                        include_set=cast(set[str], dify_config.POSITION_TOOL_INCLUDES_SET),
+                        exclude_set=cast(set[str], dify_config.POSITION_TOOL_EXCLUDES_SET),
+                        data=provider,
+                        name_func=lambda x: x.identity.name,
+                    ):
+                        continue
 
-                user_provider = ToolTransformService.builtin_provider_to_user_provider(
-                    provider_controller=provider,
-                    db_provider=find_db_builtin_provider(provider.identity.name),
-                    decrypt_credentials=False,
-                )
+                    user_provider = ToolTransformService.builtin_provider_to_user_provider(
+                        provider_controller=provider,
+                        db_provider=find_db_builtin_provider(provider.identity.name),
+                        decrypt_credentials=False,
+                    )
 
-                result_providers[provider.identity.name] = user_provider
+                    result_providers[provider.identity.name] = user_provider
 
         # get db api providers
 

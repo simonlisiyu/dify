@@ -392,8 +392,13 @@ class AppDslService:
             app.account_id = account.id
             app.directory_id = directory_id
 
-            self._session.add(app)
-            self._session.commit()
+            # self._session.add(app)
+            # self._session.commit()
+            try:
+                self._session.add(app)
+                self._session.commit()
+            except Exception:
+                raise ValueError("import app failed, please change another app name.")
             app_was_created.send(app, account=account)
 
         # Initialize app based on mode

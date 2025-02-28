@@ -44,6 +44,28 @@ class RecommendedAppService:
 
     # [Starry] directory app
     @classmethod
+    def _check_or_fix_dsl(cls, import_data: dict) -> dict:
+        """
+        Check or fix dsl
+
+        :param import_data: import data
+        """
+        if not import_data.get('version'):
+            import_data['version'] = "0.1.0"
+
+        if not import_data.get('kind') or import_data.get('kind') != "app":
+            import_data['kind'] = "app"
+
+        # if import_data.get('version') != current_dsl_version:
+        #     # Currently only one DSL version, so no difference checks or compatibility fixes will be performed.
+        #     logger.warning(f"DSL version {import_data.get('version')} is not compatible "
+        #                    f"with current version {current_dsl_version}, related to "
+        #                    f"Starry version {dsl_to_strayy_version_mapping.get(current_dsl_version)}.")
+
+        return import_data
+
+    # [Starry] directory app
+    @classmethod
     def create_template_app(cls, tenant_id: str, data: str, args: dict) -> TemplateApp:
         """
         Import from app dsl export data, create a new template
@@ -93,3 +115,74 @@ class RecommendedAppService:
             raise ValueError("import template failed, please change another template name.")
 
         return template_app
+
+    # [Starry] directory recommend app
+    @classmethod
+    def get_template_app_detail(cls, app_id: str) -> Optional[dict]:
+        """
+        Get template app detail.
+        :param app_id: app id
+        :return:
+        """
+        # is in public recommended list
+        recommended_app = db.session.query(TemplateApp).filter(
+            TemplateApp.is_listed == True,
+            TemplateApp.id == app_id
+        ).first()
+
+        if not recommended_app:
+            return None
+
+        return {
+            'id': recommended_app.id,
+            'name': recommended_app.name,
+            'icon': recommended_app.icon,
+            'icon_background': recommended_app.icon_background,
+            'mode': recommended_app.mode,
+            'export_data': recommended_app.export_data
+        }
+
+    # [Starry] directory recommend app
+    @classmethod
+    def get_template_apps_and_categories(cls, language: str) -> dict:
+        """
+        Fetch recommended apps from db template_apps table.
+        :param language: language
+        :return:
+        """
+        recommended_apps = db.session.query(TemplateApp).filter(
+            TemplateApp.is_listed == True,
+            TemplateApp.language == language
+        ).all()
+
+        if len(recommended_apps) == 0:
+            recommended_apps = db.session.query(TemplateApp).filter(
+                TemplateApp.is_listed == True,
+                TemplateApp.language == languages[0]
+            ).all()
+
+        categories = set()
+        recommended_apps_result = []
+        for recommended_app in recommended_apps:
+            recommended_app_result = {
+                'id': recommended_app.id,
+                'app': {
+                    'id': recommended_app.id,
+                    'name': recommended_app.name,
+                    'mode': recommended_app.mode,
+                    'icon': recommended_app.icon,
+                    'icon_background': recommended_app.icon_background
+                },
+                'app_id': recommended_app.id,
+                'description': recommended_app.description,
+                'copyright': recommended_app.copyright,
+                'privacy_policy': recommended_app.privacy_policy,
+                'custom_disclaimer': '',
+                'category': recommended_app.category,
+                'position': recommended_app.position,
+                'is_listed': recommended_app.is_listed
+            }
+            recommended_apps_result.append(recommended_app_result)
+            categories.add(recommended_app.category)  # add category to categories
+
+        return {'recommended_apps': recommended_apps_result, 'categories': sorted(categories)}

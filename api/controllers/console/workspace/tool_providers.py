@@ -377,6 +377,8 @@ class ToolWorkflowProviderCreateApi(Resource):
         reqparser.add_argument("parameters", type=list[dict], required=True, nullable=False, location="json")
         reqparser.add_argument("privacy_policy", type=str, required=False, nullable=True, location="json", default="")
         reqparser.add_argument("labels", type=list[str], required=False, nullable=True, location="json")
+        # [Starry] directory tool
+        reqparser.add_argument("directory_id", type=str, required=True, nullable=False, location="json")
 
         args = reqparser.parse_args()
 
@@ -391,6 +393,7 @@ class ToolWorkflowProviderCreateApi(Resource):
             parameters=args["parameters"],
             privacy_policy=args["privacy_policy"],
             labels=args["labels"],
+            directory_id=args["directory_id"],
         )
 
 
