@@ -7,7 +7,9 @@ from werkzeug.exceptions import NotFound
 from controllers.console.wraps import account_initialization_required
 from extensions.ext_database import db
 from libs.login import login_required
-from models import InstalledApp
+from models import InstalledApp, App
+# [Starry] directory app
+import logging
 
 
 def installed_app_required(view=None):
@@ -29,15 +31,20 @@ def installed_app_required(view=None):
                 )
                 .first()
             )
+            logging.info(f"installed_app: {installed_app.id}")
 
             if installed_app is None:
-                raise NotFound("Installed app not found")
+                raise NotFound("Installed_app not found")
 
-            if not installed_app.app:
+            # [Starry] directory app
+            app = db.session.query(App).filter(App.id == installed_app.app_id).first()
+            if app is None:
                 db.session.delete(installed_app)
                 db.session.commit()
 
-                raise NotFound("Installed app not found")
+                raise NotFound("Installed_app.app not found")
+            else:
+                installed_app.app = app
 
             return view(installed_app, *args, **kwargs)
 

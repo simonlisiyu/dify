@@ -7,6 +7,8 @@ from controllers.console.app.error import AppUnavailableError
 from controllers.console.explore.wraps import InstalledAppResource
 from models.model import AppMode, InstalledApp
 from services.app_service import AppService
+# [Starry] directory app
+import logging
 
 
 class AppParameterApi(InstalledAppResource):
@@ -15,6 +17,8 @@ class AppParameterApi(InstalledAppResource):
     @marshal_with(fields.parameters_fields)
     def get(self, installed_app: InstalledApp):
         """Retrieve app parameters."""
+        logging.info(f"id: {installed_app.id}")
+        logging.info(f"app id: {installed_app.app_id}")
         app_model = installed_app.app
 
         if app_model is None:
