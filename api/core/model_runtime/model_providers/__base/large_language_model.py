@@ -437,7 +437,6 @@ if you are not sure about the structure.
         :param content: delta.get("content")
         :return: processed_content
         """
-
         return content.replace("<think>", HTML_THINKING_TAG).replace("</think>", "</details>")
 
     def _invoke_result_generator(
