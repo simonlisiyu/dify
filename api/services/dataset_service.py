@@ -94,14 +94,15 @@ class DatasetService:
         directory_all_sub = directory_service.get_sub_directorys('knowledge', directory_id)
         directory_id_list = [str(directory.id) for directory in directory_all_sub]
         directory_id_list.append(directory_id)
-        query.filter(Dataset.directory_id.in_(directory_id_list))
+        logging.info(f"directory_id_list={directory_id_list}")
+        query = query.filter(Dataset.directory_id.in_(directory_id_list))
 
         if created_start is not None:
-            query.filter(Dataset.created_at >= created_start)
+            query = query.filter(Dataset.created_at >= created_start)
         if created_end is not None:
-            query.filter(Dataset.created_at < created_end)
+            query = query.filter(Dataset.created_at < created_end)
         if account_id is not None:
-            query.filter(Dataset.created_by == account_id)
+            query = query.filter(Dataset.created_by == account_id)
 
         if user:
             # get permitted dataset ids
@@ -153,6 +154,8 @@ class DatasetService:
             else:
                 return [], 0
 
+        # 打印生成的 SQL 语句
+        print(str(query.statement))
         datasets = query.paginate(page=page, per_page=per_page, max_per_page=100, error_out=False)
         logging.info(f"datasets.size={datasets.total}")
         return datasets.items, datasets.total

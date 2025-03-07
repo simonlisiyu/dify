@@ -1,3 +1,5 @@
+import logging
+
 import flask_restful  # type: ignore
 from flask import request
 from flask_login import current_user  # type: ignore  # type: ignore
@@ -67,6 +69,8 @@ class DatasetListApi(Resource):
         created_end = request.args.get('created_end', default=None, type=str)
         account_id = request.args.get('account_id', default=None, type=str)
         order_by = request.args.get('order_by', default=None, type=str)
+
+        logging.info(f"directory_id={directory_id}")
         if ids:
             datasets, total = DatasetService.get_datasets_by_ids(ids, current_user.current_tenant_id)
         else:
