@@ -275,6 +275,15 @@ class AlitaLanguageModel(LargeLanguageModel):
                 helper.dump_model(tool) for tool in tools
             ]
 
+        default_values = {
+            'temperature': 1.0,  # 默认温度
+            'top_p': 1.0,        # 默认 top_p 值
+            'max_tokens': 16,    # 默认最大生成 token 数量
+        }
+        for key, default_value in default_values.items():
+            if key not in model_parameters:
+                model_parameters[key] = default_value
+
         if completion_type == 'chat_completion':
             result = client.chat.completions.create(
                 messages=[self._convert_prompt_message_to_dict(m) for m in prompt_messages],
