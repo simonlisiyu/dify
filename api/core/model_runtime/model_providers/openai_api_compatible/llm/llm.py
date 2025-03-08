@@ -1,5 +1,6 @@
 import codecs
 import json
+import logging
 from collections.abc import Generator
 from decimal import Decimal
 from typing import Optional, Union, cast
@@ -347,6 +348,16 @@ class OAIAPICompatLargeLanguageModel(_CommonOaiApiCompat, LargeLanguageModel):
         elif "json_schema" in model_parameters:
             del model_parameters["json_schema"]
 
+        # [Starry] directory llm
+        default_values = {
+            'temperature': 1.0,  # 默认温度
+            'top_p': 1.0,        # 默认 top_p 值
+            'max_tokens': 512,    # 默认最大生成 token 数量
+        }
+        for key, default_value in default_values.items():
+            if key not in model_parameters:
+                model_parameters[key] = default_value
+
         data = {"model": model, "stream": stream, **model_parameters}
 
         completion_type = LLMMode.value_of(credentials["mode"])
@@ -383,7 +394,12 @@ class OAIAPICompatLargeLanguageModel(_CommonOaiApiCompat, LargeLanguageModel):
         if user:
             data["user"] = user
 
+        logging.info(f"requests endpoint_url={endpoint_url}")
+        logging.info(f"requests data={data}")
         response = requests.post(endpoint_url, headers=headers, json=data, timeout=(10, 300), stream=stream)
+        logging.info(f"response={response.status_code}")
+        logging.info(f"response={response.text}")
+        logging.info(f"response={response.json()}")
 
         if response.encoding is None or response.encoding == "ISO-8859-1":
             response.encoding = "utf-8"
