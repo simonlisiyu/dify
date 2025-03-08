@@ -1297,7 +1297,7 @@ class DocumentService:
             collection_binding_id=dataset_collection_binding_id,
             retrieval_model=retrieval_model.model_dump() if retrieval_model else None,
             account_id=account.id,
-            directory_id=knowledge_config['directory_id'],
+            directory_id=knowledge_config.directory_id,
         )
 
         db.session.add(dataset)  # type: ignore
@@ -1312,7 +1312,7 @@ class DocumentService:
         db.session.commit()
 
         directory_service = DirectoryService()
-        directory_service.save_directory_binding(knowledge_config['directory_id'], [dataset.id], 'knowledge')
+        directory_service.save_directory_binding(knowledge_config.directory_id, [dataset.id], 'knowledge')
 
         return dataset, documents, batch
 
