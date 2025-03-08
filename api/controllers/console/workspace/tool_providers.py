@@ -164,6 +164,8 @@ class ToolApiProviderAddApi(Resource):
         parser.add_argument("privacy_policy", type=str, required=False, nullable=True, location="json")
         parser.add_argument("labels", type=list[str], required=False, nullable=True, location="json", default=[])
         parser.add_argument("custom_disclaimer", type=str, required=False, nullable=True, location="json")
+        # [Starry] directory tool
+        parser.add_argument("directory_id", type=str, required=True, location="json")
 
         args = parser.parse_args()
 
@@ -178,6 +180,8 @@ class ToolApiProviderAddApi(Resource):
             args.get("privacy_policy", ""),
             args.get("custom_disclaimer", ""),
             args.get("labels", []),
+            # [Starry] directory tool
+            args.get("directory_id"),
         )
 
 
