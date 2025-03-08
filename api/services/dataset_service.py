@@ -155,7 +155,7 @@ class DatasetService:
                 return [], 0
 
         # 打印生成的 SQL 语句
-        print(str(query.statement))
+        # print(str(query.statement))
         datasets = query.paginate(page=page, per_page=per_page, max_per_page=100, error_out=False)
         logging.info(f"datasets.size={datasets.total}")
         return datasets.items, datasets.total
