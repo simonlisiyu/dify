@@ -33,7 +33,8 @@ from services.tools.tools_transform_service import ToolTransformService
 # [Starry] directory tool
 from services.directory_service import DirectoryService
 
-BUILTIN_TOOL_LIST = ['time', 'maths', 'judge0ce', 'json_process', 'code', 'chart']
+BUILTIN_TOOL_LIST = ['time', 'maths', 'webscraper', 'json_process', 'code', 'chart', 'dingtalk', 'wecom', 'gitlab',
+                     'qrcode', 'regex', 'audio']
 
 logger = logging.getLogger(__name__)
 

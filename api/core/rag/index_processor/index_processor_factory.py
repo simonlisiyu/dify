@@ -1,4 +1,5 @@
 """Abstract interface for document loader implementations."""
+import logging
 
 from core.rag.index_processor.constant.index_type import IndexType
 from core.rag.index_processor.index_processor_base import BaseIndexProcessor
@@ -15,7 +16,7 @@ class IndexProcessorFactory:
 
     def init_index_processor(self) -> BaseIndexProcessor:
         """Init index processor."""
-
+        logging.info(f"_index_type={self._index_type}")
         if not self._index_type:
             raise ValueError("Index type must be specified.")
 
@@ -26,4 +27,5 @@ class IndexProcessorFactory:
         elif self._index_type == IndexType.PARENT_CHILD_INDEX:
             return ParentChildIndexProcessor()
         else:
+            logging.info(f"_index_type={self._index_type}")
             raise ValueError(f"Index type {self._index_type} is not supported.")
