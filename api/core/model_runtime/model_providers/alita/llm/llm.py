@@ -221,7 +221,7 @@ class AlitaLanguageModel(LargeLanguageModel):
                 type=ParameterType.INT,
                 use_template='max_tokens',
                 min=1,
-                max=2048,
+                max=int(credentials.get("context_size", 4096)),
                 default=512,
                 label=I18nObject(
                     zh_Hans='最大生成长度',
