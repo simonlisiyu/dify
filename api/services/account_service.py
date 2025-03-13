@@ -175,22 +175,27 @@ class AccountService:
 
         return cast(Account, account)
 
+    # [Starry] directory user
     @staticmethod
-    def update_account_password(account, password, new_password):
+    # def update_account_password(account, password, new_password):
+    def update_account_password(account_id, password):
         """update account password"""
-        if account.password and not compare_password(password, account.password, account.password_salt):
-            raise CurrentPasswordIncorrectError("Current password is incorrect.")
+        # if account.password and not compare_password(password, account.password, account.password_salt):
+        #     raise CurrentPasswordIncorrectError("Current password is incorrect.")
 
         # may be raised
-        valid_password(new_password)
+        valid_password(password)
 
         # generate password salt
         salt = secrets.token_bytes(16)
         base64_salt = base64.b64encode(salt).decode()
 
         # encrypt password with salt
-        password_hashed = hash_password(new_password, salt)
+        password_hashed = hash_password(password, salt)
         base64_password_hashed = base64.b64encode(password_hashed).decode()
+
+        # [Starry] directory user
+        account = Account.query.filter_by(id=account_id).first()
         account.password = base64_password_hashed
         account.password_salt = base64_salt
         db.session.commit()
@@ -206,18 +211,19 @@ class AccountService:
         is_setup: Optional[bool] = False,
     ) -> Account:
         """create account"""
-        if not FeatureService.get_system_features().is_allow_register and not is_setup:
-            from controllers.console.error import AccountNotFound
+        # [Starry] directory user
+        # if not FeatureService.get_system_features().is_allow_register and not is_setup:
+        #     from controllers.console.error import AccountNotFound
+        #
+        #     raise AccountNotFound()
 
-            raise AccountNotFound()
-
-        if dify_config.BILLING_ENABLED and BillingService.is_email_in_freeze(email):
-            raise AccountRegisterError(
-                description=(
-                    "This email account has been deleted within the past "
-                    "30 days and is temporarily unavailable for new account registration"
-                )
-            )
+        # if dify_config.BILLING_ENABLED and BillingService.is_email_in_freeze(email):
+        #     raise AccountRegisterError(
+        #         description=(
+        #             "This email account has been deleted within the past "
+        #             "30 days and is temporarily unavailable for new account registration"
+        #         )
+        #     )
 
         account = Account()
         account.email = email
@@ -289,10 +295,14 @@ class AccountService:
 
         return True
 
+    # [Starry] directory user
     @staticmethod
-    def delete_account(account: Account) -> None:
+    # def delete_account(account: Account) -> None:
+    #     """Delete account. This method only adds a task to the queue for deletion."""
+    #     delete_account_task.delay(account.id)
+    def delete_account(account_id: str) -> None:
         """Delete account. This method only adds a task to the queue for deletion."""
-        delete_account_task.delay(account.id)
+        delete_account_task.delay(account_id)
 
     @staticmethod
     def link_account_integrate(provider: str, open_id: str, account: Account) -> None:
