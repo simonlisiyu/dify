@@ -129,6 +129,8 @@ class AccountNameApi(Resource):
     @marshal_with(account_fields)
     def post(self):
         parser = reqparse.RequestParser()
+        # [Starry] directory user
+        parser.add_argument('account_id', type=str, required=True, location='json')
         parser.add_argument("name", type=str, required=True, location="json")
         args = parser.parse_args()
 
@@ -136,7 +138,12 @@ class AccountNameApi(Resource):
         if len(args["name"]) < 3 or len(args["name"]) > 30:
             raise ValueError("Account name must be between 3 and 30 characters.")
 
-        updated_account = AccountService.update_account(current_user, name=args["name"])
+        # [Starry] directory user
+        # updated_account = AccountService.update_account(current_user, name=args["name"])
+        try:
+            updated_account = AccountService.update_account(args['account_id'], name=args['name'])
+        except Exception as e:
+            raise Forbidden("change failed, please change another name.")
 
         return updated_account
 

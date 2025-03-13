@@ -16,7 +16,7 @@ from extensions.ext_database import db
 from models.dataset import ChildChunk, Dataset, DocumentSegment
 from models.dataset import Document as DatasetDocument
 from services.external_knowledge_service import ExternalDatasetService
-# # [Starry] directory rag
+# [Starry] directory rag
 import jieba
 import logging
 
@@ -246,6 +246,7 @@ class RetrievalService:
         with flask_app.app_context():
             try:
                 dataset = db.session.query(Dataset).filter(Dataset.id == dataset_id).first()
+                logger.info(f"dataset: {dataset}")
                 if not dataset:
                     raise ValueError("dataset not found")
 

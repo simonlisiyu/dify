@@ -301,8 +301,20 @@ class AccountService:
     #     """Delete account. This method only adds a task to the queue for deletion."""
     #     delete_account_task.delay(account.id)
     def delete_account(account_id: str) -> None:
-        """Delete account. This method only adds a task to the queue for deletion."""
-        delete_account_task.delay(account_id)
+        """Delete account"""
+        account = Account.query.filter_by(id=account_id).first()
+        tenant_account_join = TenantAccountJoin.query.filter_by(account_id=account_id).first()
+        db.session.delete(account)
+        db.session.delete(tenant_account_join)
+        db.session.commit()
+
+    # [Starry] directory user
+    @staticmethod
+    def change_account_status(account_id: str, status: str) -> None:
+        """Close or active account"""
+        account = Account.query.filter_by(id=account_id).first()
+        account.status = status
+        db.session.commit()
 
     @staticmethod
     def link_account_integrate(provider: str, open_id: str, account: Account) -> None:
@@ -337,9 +349,22 @@ class AccountService:
         account.status = AccountStatus.CLOSED.value
         db.session.commit()
 
+    # [Starry] directory user
+    # @staticmethod
+    # def update_account(account, **kwargs):
+    #     """Update account fields"""
+    #     for field, value in kwargs.items():
+    #         if hasattr(account, field):
+    #             setattr(account, field, value)
+    #         else:
+    #             raise AttributeError(f"Invalid field: {field}")
+    #
+    #     db.session.commit()
+    #     return account
     @staticmethod
-    def update_account(account, **kwargs):
+    def update_account(account_id, **kwargs):
         """Update account fields"""
+        account = Account.query.filter_by(id=account_id).first()
         for field, value in kwargs.items():
             if hasattr(account, field):
                 setattr(account, field, value)
