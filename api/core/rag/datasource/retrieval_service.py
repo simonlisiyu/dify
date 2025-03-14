@@ -19,6 +19,7 @@ from services.external_knowledge_service import ExternalDatasetService
 # [Starry] directory rag
 import jieba
 import logging
+from sqlalchemy import or_
 
 default_retrieval_model = {
     "search_method": RetrievalMethod.SEMANTIC_SEARCH.value,
@@ -280,7 +281,6 @@ class RetrievalService:
                 # [Starry] directory rag
                 # documents = vector_processor.search_by_full_text(cls.escape_query_for_search(query), top_k=top_k)
                 # 使用 ilike 进行简单的关键词匹配
-                from sqlalchemy import or_
                 sql = DocumentSegment.query.filter(DocumentSegment.dataset_id == dataset.id)
                 conditions = [DocumentSegment.content.ilike(f"%{char}%") for char in query]
                 sql = sql.filter(or_(*conditions))
