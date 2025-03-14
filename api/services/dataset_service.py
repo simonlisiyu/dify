@@ -79,11 +79,11 @@ class DatasetService:
     def get_datasets(page, per_page, tenant_id=None, user=None, search=None, tag_ids=None, include_all=False,
                      directory_id=None, created_start=None, created_end=None, account_id=None, order_by=None):
         # [Starry] directory dataset
-        logging.info(f"per_page={per_page}")
-        logging.info(f"directory_id={directory_id}")
-        logging.info(f"tenant_id={tenant_id}")
-        logging.info(f"tag_ids={tag_ids}")
-        logging.info(f"user={user}")
+        # logging.info(f"per_page={per_page}")
+        # logging.info(f"directory_id={directory_id}")
+        # logging.info(f"tenant_id={tenant_id}")
+        # logging.info(f"tag_ids={tag_ids}")
+        # logging.info(f"user={user}")
         order_by_expression = Dataset.created_at.desc()
         if order_by is not None:
             order_by_expression = Dataset.created_at.desc() if order_by == 'desc' else Dataset.created_at.asc()
@@ -94,7 +94,7 @@ class DatasetService:
         directory_all_sub = directory_service.get_sub_directorys('knowledge', directory_id)
         directory_id_list = [str(directory.id) for directory in directory_all_sub]
         directory_id_list.append(directory_id)
-        logging.info(f"directory_id_list={directory_id_list}")
+        # logging.info(f"directory_id_list={directory_id_list}")
         query = query.filter(Dataset.directory_id.in_(directory_id_list))
 
         if created_start is not None:
