@@ -33,6 +33,7 @@ from core.model_runtime.entities.message_entities import (
 from core.model_runtime.entities.model_entities import (
     AIModelEntity,
     FetchFrom,
+    ModelFeature,
     ModelPropertyKey,
     ModelType,
     ParameterRule,
@@ -236,12 +237,18 @@ class AlitaLanguageModel(LargeLanguageModel):
 
         model_properties[ModelPropertyKey.CONTEXT_SIZE] = int(credentials.get('context_size', '2048'))
 
+        features = []
+        vision_support = credentials.get("vision_support", "not_support")
+        if vision_support == "support":
+            features.append(ModelFeature.VISION)
+
         entity = AIModelEntity(
             model=model,
             label=I18nObject(
                 en_US=model
             ),
             fetch_from=FetchFrom.CUSTOMIZABLE_MODEL,
+            features=features,
             model_type=ModelType.LLM,
             model_properties=model_properties,
             parameter_rules=rules
@@ -284,11 +291,17 @@ class AlitaLanguageModel(LargeLanguageModel):
             if key not in model_parameters:
                 model_parameters[key] = default_value
 
+        headers = {"Content-Type": "application/json"}
+
+        api_key = credentials.get("api_key", "1")
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
         if completion_type == 'chat_completion':
             result = client.chat.completions.create(
                 messages=[self._convert_prompt_message_to_dict(m) for m in prompt_messages],
                 model=model_name,
                 stream=stream,
+                extra_headers=headers,
                 **model_parameters,
                 **extra_model_kwargs,
             )
@@ -297,6 +310,7 @@ class AlitaLanguageModel(LargeLanguageModel):
                 prompt=self._convert_prompt_message_to_completion_prompts(prompt_messages),
                 model=model,
                 stream=stream,
+                extra_headers=headers,
                 **model_parameters,
                 **extra_model_kwargs
             )
@@ -336,7 +350,7 @@ class AlitaLanguageModel(LargeLanguageModel):
 
         client_kwargs = {
             "timeout": Timeout(315.0, read=300.0, write=10.0, connect=5.0),
-            "api_key": "1",
+            "api_key": credentials.get("api_key", "1"),
             "base_url": str(URL(credentials['server_url']) / 'v1'),
         }
 

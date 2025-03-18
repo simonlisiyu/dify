@@ -1,6 +1,9 @@
 provider: alita
 label:
   en_US: Alita
+description:
+  en_US: Models provided by haizhi, support all models.
+  zh_Hans: 海致提供的模型服务，支持最新的开源模型和商用模型 。
 icon_small:
   en_US: icon_s_en.svg
 icon_large:
@@ -11,12 +14,13 @@ help:
     en_US: How to deploy Alita
     zh_Hans: 如何部署 Alita
   url:
-    en_US: https://github.com/go-skynet/LocalAI
+    en_US: https://git.haizhi.com/AI/alita
 supported_model_types:
   - llm
   - text-embedding
   - rerank
   - speech2text
+  - tts
 configurate_methods:
   - customizable-model
 model_credential_schema:
@@ -28,6 +32,23 @@ model_credential_schema:
       en_US: Enter your model name
       zh_Hans: 输入模型名称
   credential_form_schemas:
+    - variable: server_url
+      label:
+        zh_Hans: 服务器URL
+        en_US: Server url
+      type: text-input
+      required: true
+      placeholder:
+        zh_Hans: 在此输入Alita的服务器地址，如 http://192.168.1.100:23620
+        en_US: Enter the url of your Alita, e.g. http://192.168.1.100:23620
+    - variable: api_key
+      label:
+        en_US: Alita API Key
+      type: secret-input
+      required: false
+      placeholder:
+        zh_Hans: 在此输入您的 Alita API Key
+        en_US: Enter your API Key
     - variable: completion_type
       show_on:
         - variable: __model_type
@@ -49,15 +70,6 @@ model_credential_schema:
           label:
             en_US: ChatCompletion
             zh_Hans: 对话
-    - variable: server_url
-      label:
-        zh_Hans: 服务器URL
-        en_US: Server url
-      type: text-input
-      required: true
-      placeholder:
-        zh_Hans: 在此输入Alita的服务器地址，如 http://192.168.1.100:8080
-        en_US: Enter the url of your Alita, e.g. http://192.168.1.100:8080
     - variable: context_size
       show_on:
         - variable: __model_type
@@ -70,3 +82,39 @@ model_credential_schema:
         en_US: Enter context size
       required: false
       type: text-input
+      default: "4096"
+    - variable: vision_support
+      show_on:
+        - variable: __model_type
+          value: llm
+      label:
+        zh_Hans: Vision 支持
+        en_US: Vision Support
+      type: select
+      required: false
+      default: no_support
+      options:
+        - value: support
+          label:
+            en_US: Support
+            zh_Hans: 支持
+        - value: no_support
+          label:
+            en_US: Not Support
+            zh_Hans: 不支持
+    - variable: voices
+      show_on:
+        - variable: __model_type
+          value: tts
+      label:
+        en_US: Available Voices (comma-separated)
+        zh_Hans: 可用声音（用英文逗号分隔）
+      type: text-input
+      required: false
+      default: "alloy"
+      placeholder:
+        en_US: "alloy,echo,fable,onyx,nova,shimmer"
+        zh_Hans: "alloy,echo,fable,onyx,nova,shimmer"
+      help:
+        en_US: "List voice names separated by commas. First voice will be used as default."
+        zh_Hans: "用英文逗号分隔的声音列表。第一个声音将作为默认值。"
