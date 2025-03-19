@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Generator
 from typing import cast
 
@@ -287,8 +288,8 @@ class AlitaLanguageModel(LargeLanguageModel):
 
         default_values = {
             'temperature': 1.0,  # 默认温度
-            'top_p': 1.0,        # 默认 top_p 值
-            'max_tokens': 512,    # 默认最大生成 token 数量
+            'top_p': 1.0,  # 默认 top_p 值
+            'max_tokens': 512,  # 默认最大生成 token 数量
         }
         for key, default_value in default_values.items():
             if key not in model_parameters:
@@ -304,7 +305,6 @@ class AlitaLanguageModel(LargeLanguageModel):
                 messages=[self._convert_prompt_message_to_dict(m) for m in prompt_messages],
                 model=model_name,
                 stream=stream,
-                extra_headers=headers,
                 **model_parameters,
                 **extra_model_kwargs,
             )
@@ -313,7 +313,6 @@ class AlitaLanguageModel(LargeLanguageModel):
                 prompt=self._convert_prompt_message_to_completion_prompts(prompt_messages),
                 model=model,
                 stream=stream,
-                extra_headers=headers,
                 **model_parameters,
                 **extra_model_kwargs
             )
@@ -587,12 +586,15 @@ class AlitaLanguageModel(LargeLanguageModel):
         full_response = ''
 
         for chunk in response:
+            # logging.info(f"chunk={chunk}")
             if len(chunk.choices) == 0:
                 continue
 
             delta = chunk.choices[0]
 
-            if delta.finish_reason is None and (delta.delta.content is None or delta.delta.content == ''):
+            if delta.finish_reason is None \
+                    and (delta.delta.content is None or delta.delta.content == '') \
+                    and (delta.delta.reasoning_content is None or delta.delta.reasoning_content == ''):
                 continue
 
             # check if there is a tool call in the response
@@ -603,10 +605,25 @@ class AlitaLanguageModel(LargeLanguageModel):
             assistant_message_tool_calls = self._extract_response_tool_calls(function_calls if function_calls else [])
 
             # transform assistant message to prompt message
-            assistant_prompt_message = AssistantPromptMessage(
-                content=delta.delta.content if delta.delta.content else '',
-                tool_calls=assistant_message_tool_calls
-            )
+            # assistant_prompt_message = AssistantPromptMessage(
+            #     content=delta.delta.content if delta.delta.content else '',
+            #     tool_calls=assistant_message_tool_calls
+            # )
+
+            if hasattr(delta.delta, 'reasoning_content') and delta.delta.reasoning_content is not None:
+                # logging.info(f"reasoning_content={delta.delta.reasoning_content}")
+                assistant_prompt_message = AssistantPromptMessage(
+                    content=delta.delta.reasoning_content if delta.delta.reasoning_content else '',
+                    tool_calls=assistant_message_tool_calls
+                )
+                full_response += delta.delta.reasoning_content
+            else:
+                # logging.info(f"content={delta.delta.content}")
+                assistant_prompt_message = AssistantPromptMessage(
+                    content=delta.delta.content if delta.delta.content else '',
+                    tool_calls=assistant_message_tool_calls
+                )
+                full_response += delta.delta.content
 
             if delta.finish_reason is not None:
                 # temp_assistant_prompt_message is used to calculate usage
@@ -642,8 +659,6 @@ class AlitaLanguageModel(LargeLanguageModel):
                         message=assistant_prompt_message,
                     ),
                 )
-
-                full_response += delta.delta.content
 
     def _extract_response_tool_calls(self,
                                      response_function_calls: list[FunctionCall]) \
