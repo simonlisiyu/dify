@@ -22,23 +22,9 @@ from models.enums import CreatedByRole
 from models.model import EndUser, UploadFile
 
 from .errors.file import FileTooLargeError, UnsupportedFileTypeError
-# [Starry] directory image
-from PIL import Image
-from io import BytesIO
 
 PREVIEW_WORDS_LIMIT = 3000
 
-
-# [Starry] directory image
-def compress_and_resize_image(image_content: bytes, quality=50, size=(200, 100)) -> bytes:
-    """压缩并调整图像尺寸"""
-    image = Image.open(BytesIO(image_content))
-    image_resized = image.resize(size)
-    buffer = BytesIO()
-    image_resized.save(buffer, format="PNG", quality=quality)
-    buffer.seek(0)
-
-    return buffer.getvalue()
 
 class FileService:
     @staticmethod
@@ -65,10 +51,6 @@ class FileService:
         # check if the file size is exceeded
         if not FileService.is_file_size_within_limit(extension=extension, file_size=file_size):
             raise FileTooLargeError
-
-        # [Starry] directory image
-        if mimetype == "image/png":
-            content = compress_and_resize_image(content)
 
         # generate file key
         file_uuid = str(uuid.uuid4())

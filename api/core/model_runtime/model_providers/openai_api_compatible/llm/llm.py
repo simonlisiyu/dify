@@ -352,9 +352,9 @@ class OAIAPICompatLargeLanguageModel(_CommonOaiApiCompat, LargeLanguageModel):
 
         # [Starry] directory llm
         default_values = {
-            'temperature': 1.0,  # 默认温度
+            'temperature': 0.7,  # 默认温度
             'top_p': 1.0,        # 默认 top_p 值
-            'max_tokens': 512,    # 默认最大生成 token 数量
+            'max_tokens': 8192,    # 默认最大生成 token 数量
         }
         for key, default_value in default_values.items():
             if key not in model_parameters:

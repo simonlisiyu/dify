@@ -287,9 +287,9 @@ class AlitaLanguageModel(LargeLanguageModel):
             ]
 
         default_values = {
-            'temperature': 1.0,  # 默认温度
+            'temperature': 0.7,  # 默认温度
             'top_p': 1.0,  # 默认 top_p 值
-            'max_tokens': 512,  # 默认最大生成 token 数量
+            'max_tokens': 8192,  # 默认最大生成 token 数量
         }
         for key, default_value in default_values.items():
             if key not in model_parameters:
@@ -552,7 +552,7 @@ class AlitaLanguageModel(LargeLanguageModel):
                 )
                 full_response += delta.delta.reasoning_content
             else:
-                logging.info(f"content={delta.delta.content},{is_reasoning}")
+                # logging.info(f"content={delta.delta.content},{is_reasoning}")
                 if is_reasoning:
                     c_content = "</details>" + (delta.delta.content or '')
                 else:
@@ -650,7 +650,7 @@ class AlitaLanguageModel(LargeLanguageModel):
                 )
                 full_response += delta.delta.reasoning_content
             else:
-                logging.info(f"content={delta.delta.content},{is_reasoning}")
+                # logging.info(f"content={delta.delta.content},{is_reasoning}")
                 if is_reasoning:
                     c_content = "</details>" + (delta.delta.content or '')
                 else:
