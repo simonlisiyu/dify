@@ -163,7 +163,5 @@ class InstalledAppBatchRunOutputApi(InstalledAppResource):
         for node in workflow.graph_dict["nodes"]:
             if node["data"]["type"] == "end":
                 for output in node["data"]["outputs"]:
-                    outputs.append(
-                        {"node": node["data"]["title"], "output": output["variable"]}
-                    )
-        return {"result": [{"node": "结束", "output": "temp"}]}, 200
+                    outputs.append({"node": node["data"]["title"], "output": output["variable"]})
+        return {"result": outputs}, 200
