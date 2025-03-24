@@ -1938,3 +1938,51 @@ class DirectoryBindings(db.Model):
 
         return dir_tree
 
+
+class BatchRunRecordStatus(Enum):
+    NEW = 0
+    RUNNING = 1
+    SUCCESS = 2
+    FAIL = 3
+
+
+class InstalledAppBatchRun(db.Model):  # type: ignore[name-defined]
+    __tablename__ = "installed_app_batch_run"
+    __table_args__ = (
+        db.PrimaryKeyConstraint("id", name="installed_app_batch_run_pkey"),
+        db.Index("installed_app_batch_run_tenant_id_idx", "tenant_id")
+    )
+
+    id = db.Column(StringUUID, server_default=db.text("uuid_generate_v4()"))
+    tenant_id = db.Column(StringUUID, nullable=True)
+    app_id = db.Column(StringUUID, nullable=True)
+    created_by = db.Column(StringUUID, nullable=False)
+    meta = db.Column(db.Text, nullable=False, server_default=db.text("'{}'::text"))
+    created_at = db.Column(db.DateTime, nullable=False, server_default=func.current_timestamp())
+
+
+class InstalledAppBatchRunRecord(db.Model):  # type: ignore[name-defined]
+    __tablename__ = "installed_app_batch_run_record"
+    __table_args__ = (
+        db.PrimaryKeyConstraint("id", name="installed_app_batch_run_record_pkey"),
+        db.Index("installed_app_batch_run_record_tenant_id_idx", "tenant_id")
+    )
+
+    id = db.Column(StringUUID, server_default=db.text("uuid_generate_v4()"))
+    tenant_id = db.Column(StringUUID, nullable=True)
+    app_id = db.Column(StringUUID, nullable=True)
+    app_name = db.Column(db.String(255), nullable=True)
+    from_pro = db.Column(db.String(255), nullable=True)
+    input_tb_id = db.Column(db.String(255), nullable=True)
+    input_tb_name = db.Column(db.String(255), nullable=True)
+    output_tb_id = db.Column(db.String(255), nullable=True)
+    output_tb_name = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, server_default=func.current_timestamp())
+    updated_at = db.Column(db.DateTime, nullable=False, server_default=func.current_timestamp())
+    created_by = db.Column(StringUUID, nullable=False)
+    all_data_count = db.Column(db.Integer, nullable=False)
+    success_data_count = db.Column(db.Integer, nullable=False)
+    fail_data_count = db.Column(db.Integer, nullable=False)
+    meta = db.Column(db.Text, nullable=False, server_default=db.text("'{}'::text"))
+    status = db.Column(db.Integer, nullable=False)
+    error_msg = db.Column(db.Text, nullable=False, server_default=db.text("'{}'::text"))

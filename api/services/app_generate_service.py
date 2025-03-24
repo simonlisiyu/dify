@@ -36,6 +36,8 @@ class AppGenerateService:
         :param streaming: streaming
         :return:
         """
+        if invoke_from == "debugger":
+            invoke_from = InvokeFrom.DEBUGGER
         max_active_request = AppGenerateService._get_max_active_requests(app_model)
         rate_limit = RateLimit(app_model.id, max_active_request)
         request_id = RateLimit.gen_request_key()

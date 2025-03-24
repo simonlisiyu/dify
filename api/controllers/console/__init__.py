@@ -4,6 +4,7 @@ from libs.external_api import ExternalApi
 
 from .app.app_import import AppImportApi, AppImportConfirmApi
 from .explore.audio import ChatAudioApi, ChatTextApi
+from .explore.batch_run import InstalledAppBatchRunApi, BatchRunRecordApi, InstalledAppBatchRunOutputApi
 from .explore.completion import ChatApi, ChatStopApi, CompletionApi, CompletionStopApi
 from .explore.conversation import (
     ConversationApi,
@@ -162,9 +163,14 @@ api.add_resource(
     InstalledAppWorkflowTaskStopApi, "/installed-apps/<uuid:installed_app_id>/workflows/tasks/<string:task_id>/stop"
 )
 
+api.add_resource(InstalledAppBatchRunApi, "/installed-apps/<uuid:installed_app_id>/data/batch_run")
+api.add_resource(BatchRunRecordApi, "/installed-apps/data/batch_run_record")
+api.add_resource(InstalledAppBatchRunOutputApi, "/installed-apps/<uuid:installed_app_id>/data/batch_run/output")
+
 # Import tag controllers
 from .tag import tags
 
 # [Starry] directory add
 # Import workspace controllers
 from .workspace import account, load_balancing_config, members, model_providers, models, tool_providers, workspace, directory
+from .opends import opends

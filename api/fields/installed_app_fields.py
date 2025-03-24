@@ -47,3 +47,31 @@ installed_app_pagination_fields = {
     'has_more': fields.Boolean,
     'data': fields.List(fields.Nested(installed_app_fields))
 }
+
+batch_run_record_api_field = {
+    "id": fields.String,
+    "tenant_id": fields.String,
+    "app_id": fields.String,
+    "app_name": fields.String,
+    "from_pro": fields.String,
+    "input_tb_id": fields.String,
+    "input_tb_name": fields.String,
+    "output_tb_id": fields.String,
+    "output_tb_name": fields.String,
+    "created_by": fields.String,
+    'all_data_count': fields.Integer,
+    'success_data_count': fields.Integer,
+    'fail_data_count': fields.Integer,
+    "created_at": TimestampField,
+    "updated_at": TimestampField,
+    "status": fields.Integer,
+    "error_msg": fields.String
+}
+
+batch_run_record_api_fields = {
+    "page": fields.Integer,
+    "limit": fields.Integer(attribute="per_page"),
+    "total": fields.Integer,
+    "has_more": fields.Boolean(attribute="has_next"),
+    "data": fields.List(fields.Nested(batch_run_record_api_field), attribute="items"),
+}
