@@ -155,6 +155,8 @@ class InstalledAppBatchRunOutputApi(InstalledAppResource):
         app_mode = AppMode.value_of(app_model.mode)
         if app_mode != AppMode.WORKFLOW and app_mode != AppMode.COMPLETION:
             raise NotWorkflowAppError()
+        if app_mode == AppMode.COMPLETION:
+            return {"result": [{"node": "结束", "output": "answer"}]}, 200
         workflow_service = WorkflowService()
         workflow = workflow_service.get_draft_workflow(app_model=app_model)
         outputs = []
@@ -164,4 +166,4 @@ class InstalledAppBatchRunOutputApi(InstalledAppResource):
                     outputs.append(
                         {"node": node["data"]["title"], "output": output["variable"]}
                     )
-        return {"result": outputs}, 200
+        return {"result": [{"node": "结束", "output": "temp"}]}, 200
