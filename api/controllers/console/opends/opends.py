@@ -25,7 +25,7 @@ class OpendsDmcTbInfoApi(Resource):
     @account_initialization_required
     def post(self):
         parser = reqparse.RequestParser()
-        parser.add_argument("tb_id", type=str, required=True, nullable=False, location="form")
+        parser.add_argument("tb_id", type=str, required=True, nullable=False, location="json")
         args = parser.parse_args()
         opendsClient = OpendsClient()
         response = opendsClient.dmc_tb_info(args.get("tb_id"))
@@ -46,8 +46,8 @@ class OpendsEtlFolderEtlListOnlyTbApi(Resource):
     @account_initialization_required
     def post(self):
         parser = reqparse.RequestParser()
-        parser.add_argument("filter_tree", type=str, required=True, nullable=False, location="form")
-        parser.add_argument("folder_id", type=str, required=True, nullable=False, location="form")
+        parser.add_argument("filter_tree", type=str, required=True, nullable=False, location="json")
+        parser.add_argument("folder_id", type=str, required=True, nullable=False, location="json")
         args = parser.parse_args()
         opendsClient = OpendsClient()
         response = opendsClient.etl_list_only_tb(args.get("filter_tree"), args.get("folder_id"))
@@ -59,7 +59,7 @@ class OpendsEtlFilterApi(Resource):
     @account_initialization_required
     def post(self):
         parser = reqparse.RequestParser()
-        parser.add_argument("filter_str", type=str, required=True, nullable=False, location="form")
+        parser.add_argument("filter_str", type=str, required=True, nullable=False, location="json")
         args = parser.parse_args()
         opendsClient = OpendsClient()
         response = opendsClient.etl_filter(args.get("filter_str"))
@@ -71,7 +71,7 @@ class OpendsEtlTbInfoApi(Resource):
     @account_initialization_required
     def post(self):
         parser = reqparse.RequestParser()
-        parser.add_argument("tb_id", type=str, required=True, nullable=False, location="form")
+        parser.add_argument("tb_id", type=str, required=True, nullable=False, location="json")
         args = parser.parse_args()
         opendsClient = OpendsClient()
         response = opendsClient.etl_tb_info(args.get("tb_id"))
