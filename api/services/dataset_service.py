@@ -101,8 +101,8 @@ class DatasetService:
             query = query.filter(Dataset.created_at >= created_start)
         if created_end is not None:
             query = query.filter(Dataset.created_at < created_end)
-        if account_id is not None:
-            query = query.filter(Dataset.created_by == account_id)
+        # if account_id is not None:
+        #     query = query.filter(Dataset.created_by == account_id)
 
         if user:
             # get permitted dataset ids
