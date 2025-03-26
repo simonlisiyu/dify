@@ -542,7 +542,7 @@ class AlitaLanguageModel(LargeLanguageModel):
 
             if delta.finish_reason is None \
                     and (delta.delta.content is None or delta.delta.content == '') \
-                    and (delta.delta.reasoning_content is None or delta.delta.reasoning_content == ''):
+                    and (not hasattr(delta.delta, 'reasoning_content') or delta.delta.reasoning_content is None or delta.delta.reasoning_content == ''):
                 continue
 
             if hasattr(delta.delta, 'reasoning_content') and delta.delta.reasoning_content is not None:
@@ -628,7 +628,7 @@ class AlitaLanguageModel(LargeLanguageModel):
 
             if delta.finish_reason is None \
                     and (delta.delta.content is None or delta.delta.content == '') \
-                    and (delta.delta.reasoning_content is None or delta.delta.reasoning_content == ''):
+                    and (not hasattr(delta.delta, 'reasoning_content') or delta.delta.reasoning_content is None or delta.delta.reasoning_content == ''):
                 continue
 
             # check if there is a tool call in the response
