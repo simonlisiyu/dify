@@ -301,6 +301,11 @@ class AlitaLanguageModel(LargeLanguageModel):
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
         if completion_type == 'chat_completion':
+            # logging.info("Prompt messages: %s", [self._convert_prompt_message_to_dict(m) for m in prompt_messages])
+            # logging.info("Model name: %s", model_name)
+            # logging.info("Stream: %s", stream)
+            # logging.info("Model parameters: %s", model_parameters)
+            # logging.info("Extra model kwargs: %s", extra_model_kwargs)
             result = client.chat.completions.create(
                 messages=[self._convert_prompt_message_to_dict(m) for m in prompt_messages],
                 model=model_name,
@@ -308,6 +313,7 @@ class AlitaLanguageModel(LargeLanguageModel):
                 **model_parameters,
                 **extra_model_kwargs,
             )
+            # logging.info("API response: %s", result)
         elif completion_type == 'completion':
             result = client.completions.create(
                 prompt=self._convert_prompt_message_to_completion_prompts(prompt_messages),
@@ -550,7 +556,8 @@ class AlitaLanguageModel(LargeLanguageModel):
                     content=r_content,
                     tool_calls=[]
                 )
-                full_response += delta.delta.reasoning_content
+                if delta.delta.reasoning_content is not None:
+                    full_response += delta.delta.reasoning_content
             else:
                 # logging.info(f"content={delta.delta.content},{is_reasoning}")
                 if is_reasoning:
@@ -562,7 +569,8 @@ class AlitaLanguageModel(LargeLanguageModel):
                     content=c_content,
                     tool_calls=[]
                 )
-                full_response += delta.delta.content
+                if delta.delta.content is not None:
+                    full_response += delta.delta.content
 
             if delta.finish_reason is not None:
                 # temp_assistant_prompt_message is used to calculate usage
@@ -648,7 +656,8 @@ class AlitaLanguageModel(LargeLanguageModel):
                     content=r_content,
                     tool_calls=[]
                 )
-                full_response += delta.delta.reasoning_content
+                if delta.delta.reasoning_content is not None:
+                    full_response += delta.delta.reasoning_content
             else:
                 # logging.info(f"content={delta.delta.content},{is_reasoning}")
                 if is_reasoning:
@@ -660,7 +669,8 @@ class AlitaLanguageModel(LargeLanguageModel):
                     content=c_content,
                     tool_calls=[]
                 )
-                full_response += delta.delta.content
+                if delta.delta.content is not None:
+                    full_response += delta.delta.content
 
             if delta.finish_reason is not None:
                 # temp_assistant_prompt_message is used to calculate usage
