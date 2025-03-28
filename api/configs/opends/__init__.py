@@ -33,3 +33,8 @@ class OpendsConfig(BaseSettings):
         description="OPENDS单次insert的数量",
         default=500,
     )
+
+    DMC_HOST: str = Field(
+        description="dmc的访问地址",
+        default="https://dmc.haizhi.com",
+    )

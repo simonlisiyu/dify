@@ -55,6 +55,7 @@ class InstalledAppBatchRunApi(InstalledAppResource):
         parser.add_argument("output_tb_fields", type=list, required=True, nullable=False, location="json")
         parser.add_argument("output_tb_name", type=str, required=True, nullable=False, location="json")
         parser.add_argument("output_tb_remark", type=str, required=True, nullable=False, location="json")
+        parser.add_argument("folder_from", type=str, required=True, nullable=False, default="", location="json")
         parser.add_argument("mode", type=str, required=True, nullable=False, location="json")
         args = parser.parse_args()
 
@@ -142,8 +143,42 @@ class BatchRunRecordApi(Resource):
         if args["keyword"]:
             query = query.filter(InstalledAppBatchRunRecord.app_name.ilike("%{}%".format(args["keyword"])))
         query = query.order_by(InstalledAppBatchRunRecord.created_at.desc())
-        batch_run_record = db.paginate(query, page=args["page"], per_page=args["limit"], error_out=False)
-        return batch_run_record
+        batch_run_records = db.paginate(query, page=args["page"], per_page=args["limit"], error_out=False)
+        for batch_run_record in batch_run_records.items:
+            if batch_run_record.from_pro == "etl":
+                input_tb_url = ""
+                batch_run_record.output_tb_url = "%s/doraemon/#/datamodel/data-preview/%s?moduleName=dataPersonal" \
+                                                 "&tbName=%s&type=opends&storageType=1&tbType=access&backId=folder_root" \
+                                                 % (dify_config.DMC_HOST, batch_run_record.output_tb_id,
+                                                    batch_run_record.output_tb_name)
+                if batch_run_record.folder_from == "public_database":
+                    input_tb_url = "%s/doraemon/#/datamodel/data-preview/%s?moduleName=dataPublish" \
+                                                    "&tbName=%s&tbType=access"
+                elif batch_run_record.folder_from == "dataflow_result_database":
+                    input_tb_url = "%s/doraemon/#/datamodel/data-preview/%s?moduleName=dataPersonal" \
+                                                    "&tbName=%s&tbType=access"
+
+                elif batch_run_record.folder_from == "personal_database":
+                    input_tb_url = "%s/doraemon/#/datamodel/data-preview/%s?moduleName=dataModel" \
+                                                    "&tbName=%s&type=flow"
+                if input_tb_url:
+                    batch_run_record.input_tb_url = input_tb_url % (
+                        dify_config.DMC_HOST, batch_run_record.input_tb_id, batch_run_record.input_tb_name)
+                else:
+                    batch_run_record.input_tb_url = dify_config.DMC_HOST
+            elif args["from_pro"] == "dmc":
+                batch_run_record.output_tb_url = "%s/tb-details/%s/data-preview?tbType=RAW" \
+                                                 % (dify_config.DMC_HOST, batch_run_record.output_tb_id)
+                if batch_run_record.folder_from == "MAP":
+                    batch_run_record.input_tb_url = "%s/dmc/#/tb-lib/%s?viewType=preview&moduleName=map&tbName=%s" \
+                                                     % (dify_config.DMC_HOST, batch_run_record.input_tb_id,
+                                                        batch_run_record.input_tb_name)
+                else:
+                    batch_run_record.input_tb_url = "%s/tb-details/%s/data-preview?tbType=%s" \
+                                                     % (dify_config.DMC_HOST, batch_run_record.input_tb_id,
+                                                        batch_run_record.folder_from)
+
+        return batch_run_records
 
 
 class InstalledAppBatchRunOutputApi(InstalledAppResource):

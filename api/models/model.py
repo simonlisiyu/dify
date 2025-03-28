@@ -1986,3 +1986,4 @@ class InstalledAppBatchRunRecord(db.Model):  # type: ignore[name-defined]
     meta = db.Column(db.Text, nullable=False, server_default=db.text("'{}'::text"))
     status = db.Column(db.Integer, nullable=False)
     error_msg = db.Column(db.Text, nullable=False, server_default=db.text("'{}'::text"))
+    folder_from = db.Column(db.String(255), nullable=True)

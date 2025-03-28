@@ -23,6 +23,7 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
     remark = args["output_tb_remark"]
     input_tb_id = args["input_tb_id"]
     input_tb_fields = args["input_tb_fields"]
+    folder_from = args["folder_from"]
     input_tb_field_ids = [field["fid"] for field in input_tb_fields]
     # 创建InstalledAppBatchRun
     installed_app_batch_run_model = db.session.query(InstalledAppBatchRun).filter(
@@ -53,7 +54,8 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
         success_data_count=0,
         fail_data_count=0,
         meta=json.dumps(args),
-        status=BatchRunRecordStatus.NEW.value
+        status=BatchRunRecordStatus.NEW.value,
+        folder_from=folder_from
     )
     db.session.add(installed_app_batch_run_record_model)
     db.session.commit()

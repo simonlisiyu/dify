@@ -65,7 +65,9 @@ batch_run_record_api_field = {
     "created_at": TimestampField,
     "updated_at": TimestampField,
     "status": fields.Integer,
-    "error_msg": fields.String
+    "error_msg": fields.String,
+    "input_tb_url": fields.String,
+    "output_tb_url": fields.String
 }
 
 batch_run_record_api_fields = {
