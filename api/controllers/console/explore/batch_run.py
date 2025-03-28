@@ -154,11 +154,11 @@ class BatchRunRecordApi(Resource):
                 if batch_run_record.folder_from == "public_database":
                     input_tb_url = "%s/doraemon/#/datamodel/data-preview/%s?moduleName=dataPublish" \
                                                     "&tbName=%s&tbType=access"
-                elif batch_run_record.folder_from == "dataflow_result_database":
+                elif batch_run_record.folder_from == "personal_upload_database":
                     input_tb_url = "%s/doraemon/#/datamodel/data-preview/%s?moduleName=dataPersonal" \
                                                     "&tbName=%s&tbType=access"
 
-                elif batch_run_record.folder_from == "personal_database":
+                elif batch_run_record.folder_from == "dataflow_result_database":
                     input_tb_url = "%s/doraemon/#/datamodel/data-preview/%s?moduleName=dataModel" \
                                                     "&tbName=%s&type=flow"
                 if input_tb_url:
