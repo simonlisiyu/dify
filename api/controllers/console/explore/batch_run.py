@@ -71,9 +71,9 @@ class InstalledAppBatchRunApi(InstalledAppResource):
             input_tb_field_ids = [field["fid"] for field in input_tb_fields]
             result = opendsClient.tb_data_query(input_tb_id, input_tb_field_ids, 5)
             if result == "":
-                raise ValueError("table data query error")
+                raise ValueError("工作表数据查询出错")
             if len(result["data"]) == 0:
-                raise ValueError("table data is empty")
+                raise ValueError("工作表数据为空")
             for data in result["data"]:
                 inputs = {}
                 for i, input_tb_field in enumerate(input_tb_fields):
@@ -108,21 +108,21 @@ class InstalledAppBatchRunApi(InstalledAppResource):
                         ds_id = ds["ds_id"]
                         for table in ds["tables"]:
                             if table[0] == args["output_tb_name"]:
-                                raise ValueError("table name already exists")
+                                raise ValueError("输出数据表名称已存在")
                         break
                 else:
                     ds_id = opendsClient.ds_create(dify_config.OPENDS_AI_DS_NAME)["ds_id"]
                 dmc_tb_info = opendsClient.dmc_tb_info(args["input_tb_id"])
                 if dmc_tb_info["data_count"] > dify_config.OPENDS_QUERY_LIMIT:
-                    raise ValueError("table count more than limit")
+                    raise ValueError("工作表数据量超过最大限制:%s条" % dify_config.OPENDS_QUERY_LIMIT)
                     # raise ValueError("table count more than %s" % dify_config.OPENDS_QUERY_LIMIT)
             if args["from_pro"] == "etl":
                 etl_tb_list = opendsClient.etl_tb_list(args["output_tb_name"])
                 if len(etl_tb_list) > 0:
-                    raise ValueError("table name already exists")
+                    raise ValueError("输出数据表名称已存在")
                 etl_tb_info = opendsClient.etl_tb_info(args["input_tb_id"])
                 if etl_tb_info["data_count"] > dify_config.OPENDS_QUERY_LIMIT:
-                    raise ValueError("table count more than limit")
+                    raise ValueError("工作表数据量超过最大限制:%s条" % dify_config.OPENDS_QUERY_LIMIT)
                     # raise ValueError("table count more than %s" % dify_config.OPENDS_QUERY_LIMIT)
             installed_app_batch_run.delay(args=args, app_id=app_model.id, current_user=current_user.id, ds_id=ds_id)
             # installed_app_batch_run(args, app_model, current_user, ds_id)
