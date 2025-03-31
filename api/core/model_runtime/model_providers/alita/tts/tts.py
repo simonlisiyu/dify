@@ -48,8 +48,8 @@ class OAICompatText2SpeechModel(_CommonOaiApiCompat, TTSModel):
         if not endpoint_url.endswith("/"):
             endpoint_url += "/"
 
-        server_url_standard = credentials.get('server_url_standard', 'false')
-        is_standard = server_url_standard.lower() == 'true'
+        server_url_standard = credentials.get('server_url_standard', 'standard')
+        is_standard = server_url_standard.lower() == 'standard'
         if is_standard:
             endpoint_url = urljoin(endpoint_url, "audio/speech")
 

@@ -66,8 +66,8 @@ class LocalAITextEmbeddingModel(TextEmbeddingModel):
         try:
             logger.info(f'url: {url}')
             logger.info(f'data: {data}')
-            server_url_standard = credentials.get('server_url_standard', 'false')
-            is_standard = server_url_standard.lower() == 'true'
+            server_url_standard = credentials.get('server_url_standard', 'standard')
+            is_standard = server_url_standard.lower() == 'standard'
             if is_standard:
                 full_url = str(URL(url) / 'rerank')
             else:

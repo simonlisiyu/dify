@@ -33,8 +33,8 @@ class AlitaSpeech2text(Speech2TextModel):
         :return: text for given audio file
         """
         
-        server_url_standard = credentials.get('server_url_standard', 'false')
-        is_standard = server_url_standard.lower() == 'true'
+        server_url_standard = credentials.get('server_url_standard', 'standard')
+        is_standard = server_url_standard.lower() == 'standard'
         if is_standard:
             url = str(URL(credentials['server_url']) / "v1/audio/transcriptions")
         else:
