@@ -164,7 +164,7 @@ class BatchRunRecordApi(Resource):
             if batch_run_record.from_pro == "etl":
                 input_tb_url = ""
                 batch_run_record.output_tb_url = "%s/doraemon/#/datamodel/data-preview/%s?moduleName=dataPersonal" \
-                                                 "&tbName=%s&type=opends&storageType=1&tbType=access&backId=folder_root" \
+                                                 "&tbName=%s&type=opends&storageType=1&tbType=self&backId=folder_root" \
                                                  % (dify_config.DMC_HOST, batch_run_record.output_tb_id,
                                                     batch_run_record.output_tb_name)
                 if batch_run_record.folder_from == "public_database":

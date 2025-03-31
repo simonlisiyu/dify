@@ -67,12 +67,19 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
         opendsClient = OpendsClient()
         # 创建工作表
         output_tb_fields = args["output_tb_fields"]
-        schema = [{
+        input_schema = [{
+            "name": "input_%s" % input_tb_field["input"],
+            "type": "string",
+            "remark": "",
+            "title": "input_%s" % input_tb_field["input"]
+        } for input_tb_field in input_tb_fields]
+        output_schema = [{
             "name": output_tb_field["name"],
             "type": output_tb_field["type"] if output_tb_field["type"] else "string",
             "remark": output_tb_field["remark"],
-            "title": output_tb_field["name"],
+            "title": output_tb_field["name"]
         } for output_tb_field in output_tb_fields]
+        schema = input_schema + output_schema
         fields = [field["name"] for field in schema]
         if args["from_pro"] == "dmc":
             output_tb_id = opendsClient.tb_create(name, ds_id, schema, name, remark)["tb_id"]
@@ -99,6 +106,9 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
             db.session.commit()
         else:
             installed_app_batch_run_record_model.all_data_count = result["df_length"]
+            installed_app_batch_run_record_model.status = BatchRunRecordStatus.RUNNING.value
+            db.session.add(installed_app_batch_run_record_model)
+            db.session.commit()
             for i, data in enumerate(result["data"]):
                 try:
                     inputs = {}
@@ -110,7 +120,8 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
                             app_model=app_model, user=current_user, args={"inputs": inputs, "query": ""},
                             invoke_from=InvokeFrom.EXPLORE.value, streaming=False
                         )
-                        output_datas.append([response["answer"]])
+                        data.extend([response["answer"]])
+                        output_datas.append(data)
                     else:
                         response = AppGenerateService.generate(
                             app_model=app_model, user=current_user, args={"inputs": inputs, "query": ""},
@@ -135,7 +146,8 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
                         output_data = []
                         for k, output_tb_field in enumerate(output_tb_fields):
                             output_data.append(outputs.get(output_tb_field["node"] + "_" + output_tb_field["output"], ""))
-                        output_datas.append(output_data)
+                        data.extend(output_data)
+                        output_datas.append(data)
                     success_data_count += 1
                 except Exception as e:
                     fail_data_count += 1
