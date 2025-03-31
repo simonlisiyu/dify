@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Generator
 from typing import cast
 
@@ -24,7 +25,10 @@ from core.model_runtime.entities.common_entities import I18nObject
 from core.model_runtime.entities.llm_entities import LLMMode, LLMResult, LLMResultChunk, LLMResultChunkDelta
 from core.model_runtime.entities.message_entities import (
     AssistantPromptMessage,
+    ImagePromptMessageContent,
     PromptMessage,
+    PromptMessageContent,
+    PromptMessageContentType,
     PromptMessageTool,
     SystemPromptMessage,
     ToolPromptMessage,
@@ -33,6 +37,7 @@ from core.model_runtime.entities.message_entities import (
 from core.model_runtime.entities.model_entities import (
     AIModelEntity,
     FetchFrom,
+    ModelFeature,
     ModelPropertyKey,
     ModelType,
     ParameterRule,
@@ -221,7 +226,7 @@ class AlitaLanguageModel(LargeLanguageModel):
                 type=ParameterType.INT,
                 use_template='max_tokens',
                 min=1,
-                max=2048,
+                max=int(credentials.get("context_size", 4096)),
                 default=512,
                 label=I18nObject(
                     zh_Hans='最大生成长度',
@@ -236,12 +241,18 @@ class AlitaLanguageModel(LargeLanguageModel):
 
         model_properties[ModelPropertyKey.CONTEXT_SIZE] = int(credentials.get('context_size', '2048'))
 
+        features = []
+        vision_support = credentials.get("vision_support", "not_support")
+        if vision_support == "support":
+            features.append(ModelFeature.VISION)
+
         entity = AIModelEntity(
             model=model,
             label=I18nObject(
                 en_US=model
             ),
             fetch_from=FetchFrom.CUSTOMIZABLE_MODEL,
+            features=features,
             model_type=ModelType.LLM,
             model_properties=model_properties,
             parameter_rules=rules
@@ -276,15 +287,25 @@ class AlitaLanguageModel(LargeLanguageModel):
             ]
 
         default_values = {
-            'temperature': 1.0,  # 默认温度
-            'top_p': 1.0,        # 默认 top_p 值
-            'max_tokens': 512,    # 默认最大生成 token 数量
+            'temperature': 0.7,  # 默认温度
+            'top_p': 1.0,  # 默认 top_p 值
+            'max_tokens': 2048,  # 默认最大生成 token 数量
         }
         for key, default_value in default_values.items():
             if key not in model_parameters:
                 model_parameters[key] = default_value
 
+        headers = {"Content-Type": "application/json"}
+
+        api_key = credentials.get("api_key", "1")
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
         if completion_type == 'chat_completion':
+            # logging.info("Prompt messages: %s", [self._convert_prompt_message_to_dict(m) for m in prompt_messages])
+            # logging.info("Model name: %s", model_name)
+            # logging.info("Stream: %s", stream)
+            # logging.info("Model parameters: %s", model_parameters)
+            # logging.info("Extra model kwargs: %s", extra_model_kwargs)
             result = client.chat.completions.create(
                 messages=[self._convert_prompt_message_to_dict(m) for m in prompt_messages],
                 model=model_name,
@@ -292,6 +313,7 @@ class AlitaLanguageModel(LargeLanguageModel):
                 **model_parameters,
                 **extra_model_kwargs,
             )
+            # logging.info("API response: %s", result)
         elif completion_type == 'completion':
             result = client.completions.create(
                 prompt=self._convert_prompt_message_to_completion_prompts(prompt_messages),
@@ -303,15 +325,16 @@ class AlitaLanguageModel(LargeLanguageModel):
         else:
             raise ValueError(f"Unknown completion type {completion_type}")
 
+        is_reasoning = False
         if stream:
             if completion_type == 'completion':
                 return self._handle_completion_generate_stream_response(
                     model=model, credentials=credentials, response=result, tools=tools,
-                    prompt_messages=prompt_messages
+                    prompt_messages=prompt_messages, is_reasoning=is_reasoning
                 )
             return self._handle_chat_generate_stream_response(
                 model=model, credentials=credentials, response=result, tools=tools,
-                prompt_messages=prompt_messages
+                prompt_messages=prompt_messages, is_reasoning=is_reasoning
             )
 
         if completion_type == 'completion':
@@ -336,7 +359,7 @@ class AlitaLanguageModel(LargeLanguageModel):
 
         client_kwargs = {
             "timeout": Timeout(315.0, read=300.0, write=10.0, connect=5.0),
-            "api_key": "1",
+            "api_key": credentials.get("api_key", "1"),
             "base_url": str(URL(credentials['server_url']) / 'v1'),
         }
 
@@ -351,7 +374,21 @@ class AlitaLanguageModel(LargeLanguageModel):
             if isinstance(message.content, str):
                 message_dict = {"role": "user", "content": message.content}
             else:
-                raise ValueError("User message content must be str")
+                sub_messages = []
+                for message_content in message.content:
+                    if message_content.type == PromptMessageContentType.TEXT:
+                        message_content = cast(PromptMessageContent, message_content)
+                        sub_message_dict = {"type": "text", "text": message_content.data}
+                        sub_messages.append(sub_message_dict)
+                    elif message_content.type == PromptMessageContentType.IMAGE:
+                        message_content = cast(ImagePromptMessageContent, message_content)
+                        sub_message_dict = {
+                            "type": "image_url",
+                            "image_url": {"url": message_content.data, "detail": message_content.detail.value},
+                        }
+                        sub_messages.append(sub_message_dict)
+
+                message_dict = {"role": "user", "content": sub_messages}
         elif isinstance(message, AssistantPromptMessage):
             message = cast(AssistantPromptMessage, message)
             message_dict = {"role": "assistant", "content": message.content}
@@ -493,7 +530,8 @@ class AlitaLanguageModel(LargeLanguageModel):
                                                     prompt_messages: list[PromptMessage],
                                                     credentials: dict,
                                                     response: Stream[Completion],
-                                                    tools: list[PromptMessageTool]) -> Generator:
+                                                    tools: list[PromptMessageTool],
+                                                    is_reasoning: bool) -> Generator:
         full_response = ''
 
         for chunk in response:
@@ -502,11 +540,37 @@ class AlitaLanguageModel(LargeLanguageModel):
 
             delta = chunk.choices[0]
 
-            # transform assistant message to prompt message
-            assistant_prompt_message = AssistantPromptMessage(
-                content=delta.text if delta.text else '',
-                tool_calls=[]
-            )
+            if delta.finish_reason is None \
+                    and (delta.delta.content is None or delta.delta.content == '') \
+                    and (not hasattr(delta.delta, 'reasoning_content') or delta.delta.reasoning_content is None or delta.delta.reasoning_content == ''):
+                continue
+
+            if hasattr(delta.delta, 'reasoning_content') and delta.delta.reasoning_content is not None:
+                # logging.info(f"reasoning_content={delta.delta.reasoning_content},{is_reasoning}")
+                if not is_reasoning:
+                    r_content = "<details style=\"color:gray;background-color: #f8f8f8;padding: 8px;border-radius: 4px;\" open> <summary> Thinking... </summary>" + (delta.delta.reasoning_content or '')
+                else:
+                    r_content = delta.delta.reasoning_content or ''
+                is_reasoning = True
+                assistant_prompt_message = AssistantPromptMessage(
+                    content=r_content,
+                    tool_calls=[]
+                )
+                if delta.delta.reasoning_content is not None:
+                    full_response += delta.delta.reasoning_content
+            else:
+                # logging.info(f"content={delta.delta.content},{is_reasoning}")
+                if is_reasoning:
+                    c_content = "</details>" + (delta.delta.content or '')
+                else:
+                    c_content = delta.delta.content or ''
+                is_reasoning = False
+                assistant_prompt_message = AssistantPromptMessage(
+                    content=c_content,
+                    tool_calls=[]
+                )
+                if delta.delta.content is not None:
+                    full_response += delta.delta.content
 
             if delta.finish_reason is not None:
                 # temp_assistant_prompt_message is used to calculate usage
@@ -546,22 +610,25 @@ class AlitaLanguageModel(LargeLanguageModel):
                     ),
                 )
 
-                full_response += delta.text
 
     def _handle_chat_generate_stream_response(self, model: str,
                                               prompt_messages: list[PromptMessage],
                                               credentials: dict,
                                               response: Stream[ChatCompletionChunk],
-                                              tools: list[PromptMessageTool]) -> Generator:
+                                              tools: list[PromptMessageTool],
+                                              is_reasoning: bool) -> Generator:
         full_response = ''
 
         for chunk in response:
+            # logging.info(f"chunk={chunk}")
             if len(chunk.choices) == 0:
                 continue
 
             delta = chunk.choices[0]
 
-            if delta.finish_reason is None and (delta.delta.content is None or delta.delta.content == ''):
+            if delta.finish_reason is None \
+                    and (delta.delta.content is None or delta.delta.content == '') \
+                    and (not hasattr(delta.delta, 'reasoning_content') or delta.delta.reasoning_content is None or delta.delta.reasoning_content == ''):
                 continue
 
             # check if there is a tool call in the response
@@ -572,10 +639,38 @@ class AlitaLanguageModel(LargeLanguageModel):
             assistant_message_tool_calls = self._extract_response_tool_calls(function_calls if function_calls else [])
 
             # transform assistant message to prompt message
-            assistant_prompt_message = AssistantPromptMessage(
-                content=delta.delta.content if delta.delta.content else '',
-                tool_calls=assistant_message_tool_calls
-            )
+            # assistant_prompt_message = AssistantPromptMessage(
+            #     content=delta.delta.content if delta.delta.content else '',
+            #     tool_calls=assistant_message_tool_calls
+            # )
+
+            # transform assistant message to prompt message
+            if hasattr(delta.delta, 'reasoning_content') and delta.delta.reasoning_content is not None:
+                # logging.info(f"reasoning_content={delta.delta.reasoning_content},{is_reasoning}")
+                if not is_reasoning:
+                    r_content = "<details style=\"color:gray;background-color: #f8f8f8;padding: 8px;border-radius: 4px;\" open> <summary> Thinking... </summary>" + (delta.delta.reasoning_content or '')
+                else:
+                    r_content = delta.delta.reasoning_content or ''
+                is_reasoning = True
+                assistant_prompt_message = AssistantPromptMessage(
+                    content=r_content,
+                    tool_calls=[]
+                )
+                if delta.delta.reasoning_content is not None:
+                    full_response += delta.delta.reasoning_content
+            else:
+                # logging.info(f"content={delta.delta.content},{is_reasoning}")
+                if is_reasoning:
+                    c_content = "</details>" + (delta.delta.content or '')
+                else:
+                    c_content = delta.delta.content or ''
+                is_reasoning = False
+                assistant_prompt_message = AssistantPromptMessage(
+                    content=c_content,
+                    tool_calls=[]
+                )
+                if delta.delta.content is not None:
+                    full_response += delta.delta.content
 
             if delta.finish_reason is not None:
                 # temp_assistant_prompt_message is used to calculate usage
@@ -611,8 +706,6 @@ class AlitaLanguageModel(LargeLanguageModel):
                         message=assistant_prompt_message,
                     ),
                 )
-
-                full_response += delta.delta.content
 
     def _extract_response_tool_calls(self,
                                      response_function_calls: list[FunctionCall]) \

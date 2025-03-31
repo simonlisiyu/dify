@@ -1,4 +1,5 @@
 import io
+import logging
 
 from flask import send_file
 from flask_login import current_user  # type: ignore
@@ -149,7 +150,9 @@ class ToolApiProviderAddApi(Resource):
     @login_required
     @account_initialization_required
     def post(self):
-        if not current_user.is_admin_or_owner:
+        # [Starry] directory tool
+        # if not current_user.is_admin_or_owner:
+        if not current_user.is_admin_or_owner and not current_user.is_editor:
             raise Forbidden()
 
         user_id = current_user.id
@@ -231,7 +234,9 @@ class ToolApiProviderUpdateApi(Resource):
     @login_required
     @account_initialization_required
     def post(self):
-        if not current_user.is_admin_or_owner:
+        # [Starry] directory tool
+        # if not current_user.is_admin_or_owner:
+        if not current_user.is_admin_or_owner and not current_user.is_editor:
             raise Forbidden()
 
         user_id = current_user.id
@@ -270,7 +275,9 @@ class ToolApiProviderDeleteApi(Resource):
     @login_required
     @account_initialization_required
     def post(self):
-        if not current_user.is_admin_or_owner:
+        # [Starry] directory tool
+        # if not current_user.is_admin_or_owner:
+        if not current_user.is_admin_or_owner and not current_user.is_editor:
             raise Forbidden()
 
         user_id = current_user.id
@@ -366,7 +373,9 @@ class ToolWorkflowProviderCreateApi(Resource):
     @login_required
     @account_initialization_required
     def post(self):
-        if not current_user.is_admin_or_owner:
+        # [Starry] directory tool
+        # if not current_user.is_admin_or_owner:
+        if not current_user.is_admin_or_owner and not current_user.is_editor:
             raise Forbidden()
 
         user_id = current_user.id
@@ -406,7 +415,9 @@ class ToolWorkflowProviderUpdateApi(Resource):
     @login_required
     @account_initialization_required
     def post(self):
-        if not current_user.is_admin_or_owner:
+        # [Starry] directory tool
+        # if not current_user.is_admin_or_owner:
+        if not current_user.is_admin_or_owner and not current_user.is_editor:
             raise Forbidden()
 
         user_id = current_user.id
@@ -446,7 +457,9 @@ class ToolWorkflowProviderDeleteApi(Resource):
     @login_required
     @account_initialization_required
     def post(self):
-        if not current_user.is_admin_or_owner:
+        # [Starry] directory tool
+        # if not current_user.is_admin_or_owner:
+        if not current_user.is_admin_or_owner and not current_user.is_editor:
             raise Forbidden()
 
         user_id = current_user.id

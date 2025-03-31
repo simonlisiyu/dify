@@ -137,7 +137,9 @@ class OAIAPICompatLargeLanguageModel(_CommonOaiApiCompat, LargeLanguageModel):
                 raise ValueError("Unsupported completion type for model configuration.")
 
             # send a post request to validate the credentials
+            # logging.info(f"openai_api_compatible data={data}")
             response = requests.post(endpoint_url, headers=headers, json=data, timeout=(10, 300))
+            # logging.info(f"openai_api_compatible data={data}")
 
             if response.status_code != 200:
                 raise CredentialsValidateFailedError(
@@ -350,9 +352,9 @@ class OAIAPICompatLargeLanguageModel(_CommonOaiApiCompat, LargeLanguageModel):
 
         # [Starry] directory llm
         default_values = {
-            'temperature': 1.0,  # 默认温度
+            'temperature': 0.7,  # 默认温度
             'top_p': 1.0,        # 默认 top_p 值
-            'max_tokens': 512,    # 默认最大生成 token 数量
+            'max_tokens': 8192,    # 默认最大生成 token 数量
         }
         for key, default_value in default_values.items():
             if key not in model_parameters:
@@ -394,12 +396,11 @@ class OAIAPICompatLargeLanguageModel(_CommonOaiApiCompat, LargeLanguageModel):
         if user:
             data["user"] = user
 
-        logging.info(f"requests endpoint_url={endpoint_url}")
-        logging.info(f"requests data={data}")
+        # logging.info(f"requests endpoint_url={endpoint_url}")
+        # logging.info(f"requests data={data}")
         response = requests.post(endpoint_url, headers=headers, json=data, timeout=(10, 300), stream=stream)
-        logging.info(f"response={response.status_code}")
-        logging.info(f"response={response.text}")
-        logging.info(f"response={response.json()}")
+        # logging.info(f"response1={response.status_code}")
+        # logging.info(f"response2={response.text}")
 
         if response.encoding is None or response.encoding == "ISO-8859-1":
             response.encoding = "utf-8"

@@ -16,9 +16,10 @@ from extensions.ext_database import db
 from models.dataset import ChildChunk, Dataset, DocumentSegment
 from models.dataset import Document as DatasetDocument
 from services.external_knowledge_service import ExternalDatasetService
-# # [Starry] directory rag
+# [Starry] directory rag
 import jieba
 import logging
+from sqlalchemy import or_
 
 default_retrieval_model = {
     "search_method": RetrievalMethod.SEMANTIC_SEARCH.value,
@@ -246,12 +247,14 @@ class RetrievalService:
         with flask_app.app_context():
             try:
                 dataset = db.session.query(Dataset).filter(Dataset.id == dataset_id).first()
+                logger.info(f"dataset: {dataset}")
                 if not dataset:
                     raise ValueError("dataset not found")
 
-                vector_processor = Vector(
-                    dataset=dataset,
-                )
+                # [Starry] directory rag
+                # vector_processor = Vector(
+                #     dataset=dataset,
+                # )
 
                 # [Starry] directory rag
                 logger.info(f"query: {query}")
@@ -269,10 +272,34 @@ class RetrievalService:
                     for word in filtered_list:
                         if word in synonym_dict:
                             final_list.append(synonym_dict[word])
-                    query = "/".join(final_list)
-                    logger.info(f"stopwords_filter_query: {query}")
+                    # query = "/".join(final_list)
+                    # logger.info(f"stopwords_filter_query: {query}")
+                    query = final_list
+                else:
+                    query = [query]
 
-                documents = vector_processor.search_by_full_text(cls.escape_query_for_search(query), top_k=top_k)
+                # [Starry] directory rag
+                # documents = vector_processor.search_by_full_text(cls.escape_query_for_search(query), top_k=top_k)
+                # 使用 ilike 进行简单的关键词匹配
+                sql = DocumentSegment.query.filter(DocumentSegment.dataset_id == dataset.id)
+                conditions = [DocumentSegment.content.ilike(f"%{char}%") for char in query]
+                sql = sql.filter(or_(*conditions))
+                # logger.info(f"query={str(sql.statement)}")
+                document_segments = sql.limit(top_k).all()
+                documents = []
+
+                for segment in document_segments:
+                    document = Document(
+                        page_content=segment.content,
+                        metadata={
+                            "doc_id": segment.index_node_id,
+                            "doc_hash": segment.index_node_hash,
+                            "document_id": segment.document_id,
+                            "dataset_id": segment.dataset_id,
+                        },
+                    )
+                    documents.append(document)
+
                 if documents:
                     if (
                             reranking_model

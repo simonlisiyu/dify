@@ -129,6 +129,8 @@ class AccountNameApi(Resource):
     @marshal_with(account_fields)
     def post(self):
         parser = reqparse.RequestParser()
+        # [Starry] directory user
+        parser.add_argument('account_id', type=str, required=True, location='json')
         parser.add_argument("name", type=str, required=True, location="json")
         args = parser.parse_args()
 
@@ -136,7 +138,12 @@ class AccountNameApi(Resource):
         if len(args["name"]) < 3 or len(args["name"]) > 30:
             raise ValueError("Account name must be between 3 and 30 characters.")
 
-        updated_account = AccountService.update_account(current_user, name=args["name"])
+        # [Starry] directory user
+        # updated_account = AccountService.update_account(current_user, name=args["name"])
+        try:
+            updated_account = AccountService.update_account(args['account_id'], name=args['name'])
+        except Exception as e:
+            raise Forbidden("change failed, please change another name.")
 
         return updated_account
 
@@ -209,19 +216,22 @@ class AccountPasswordApi(Resource):
     @setup_required
     @login_required
     @account_initialization_required
-    @marshal_with(account_fields)
+    # @marshal_with(account_fields)
     def post(self):
         parser = reqparse.RequestParser()
-        parser.add_argument("password", type=str, required=False, location="json")
-        parser.add_argument("new_password", type=str, required=True, location="json")
-        parser.add_argument("repeat_new_password", type=str, required=True, location="json")
+        # [Starry] directory user
+        parser.add_argument('account_id', type=str, required=True, location='json')
+        parser.add_argument("password", type=str, required=True, location="json")
+        # parser.add_argument("new_password", type=str, required=True, location="json")
+        # parser.add_argument("repeat_new_password", type=str, required=True, location="json")
         args = parser.parse_args()
 
-        if args["new_password"] != args["repeat_new_password"]:
-            raise RepeatPasswordNotMatchError()
+        # if args["new_password"] != args["repeat_new_password"]:
+        #     raise RepeatPasswordNotMatchError()
 
         try:
-            AccountService.update_account_password(current_user, args["password"], args["new_password"])
+            # AccountService.update_account_password(current_user, args["password"], args["new_password"])
+            AccountService.update_account_password(args['account_id'], args["password"])
         except ServiceCurrentPasswordIncorrectError:
             raise CurrentPasswordIncorrectError()
 
@@ -328,6 +338,34 @@ class AccountDeleteUpdateFeedbackApi(Resource):
         return {"result": "success"}
 
 
+# [Starry] directory user
+class AccountManageApi(Resource):
+
+    @login_required
+    @account_initialization_required
+    def delete(self, account_id):
+        """Delete a directory."""
+        if not current_user.is_admin_or_owner:
+            raise Forbidden()
+
+        AccountService.delete_account(account_id)
+
+        return {"result": "success"}
+
+    def patch(self, account_id):
+        """Update account's status."""
+        if not current_user.is_admin_or_owner:
+            raise Forbidden()
+
+        parser = reqparse.RequestParser()
+        parser.add_argument('status', type=str, choices=['active', 'closed'], required=True, location='args')
+        args = parser.parse_args()
+
+        AccountService.change_account_status(account_id, args['status'])
+
+        return {"result": "success"}
+
+
 # Register API resources
 api.add_resource(AccountInitApi, "/account/init")
 api.add_resource(AccountProfileApi, "/account/profile")
@@ -341,5 +379,8 @@ api.add_resource(AccountIntegrateApi, "/account/integrates")
 api.add_resource(AccountDeleteVerifyApi, "/account/delete/verify")
 api.add_resource(AccountDeleteApi, "/account/delete")
 api.add_resource(AccountDeleteUpdateFeedbackApi, "/account/delete/feedback")
+# [Starry] directory user
+api.add_resource(AccountApi, '/account')
+api.add_resource(AccountManageApi, '/account/<uuid:account_id>')
 # api.add_resource(AccountEmailApi, '/account/email')
 # api.add_resource(AccountEmailVerifyApi, '/account/email-verify')
