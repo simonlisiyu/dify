@@ -64,7 +64,7 @@ class InstalledAppBatchRunApi(InstalledAppResource):
         if app_model.mode not in [AppMode.COMPLETION.value, AppMode.WORKFLOW.value]:
             raise ValueError("not workflow or completion app")
 
-        if args["mode"] == "test":
+        if args["mode"] == "test" or args["mode"] == "data":
             responses = []
             input_tb_id = args["input_tb_id"]
             input_tb_fields = args["input_tb_fields"]
@@ -74,31 +74,40 @@ class InstalledAppBatchRunApi(InstalledAppResource):
                 raise ValueError("工作表数据查询出错")
             if len(result["data"]) == 0:
                 raise ValueError("工作表数据为空")
-            for data in result["data"]:
-                inputs = {}
-                for i, input_tb_field in enumerate(input_tb_fields):
-                    inputs[input_tb_field["input"]] = data[i]
-                try:
-                    response = AppGenerateService.generate(
-                        app_model=app_model, user=current_user, args={"inputs": inputs, "query": ""},
-                        invoke_from=InvokeFrom.DEBUGGER, streaming=True
-                    )
-                    responses.append(response)
+            if args["mode"] == "test":
+                for data in result["data"]:
+                    inputs = {}
+                    for i, input_tb_field in enumerate(input_tb_fields):
+                        inputs[input_tb_field["input"]] = data[i]
+                    try:
+                        response = AppGenerateService.generate(
+                            app_model=app_model, user=current_user, args={"inputs": inputs, "query": ""},
+                            invoke_from=InvokeFrom.DEBUGGER, streaming=True
+                        )
+                        responses.append(response)
 
-                except ProviderTokenNotInitError as ex:
-                    raise ProviderNotInitializeError(ex.description)
-                except QuotaExceededError:
-                    raise ProviderQuotaExceededError()
-                except ModelCurrentlyNotSupportError:
-                    raise ProviderModelCurrentlyNotSupportError()
-                except InvokeError as e:
-                    raise CompletionRequestError(e.description)
-                except ValueError as e:
-                    raise e
-                except Exception as e:
-                    logging.exception("internal server error.")
-                    raise InternalServerError()
-            return helper.compact_generate_responses(responses)
+                    except ProviderTokenNotInitError as ex:
+                        raise ProviderNotInitializeError(ex.description)
+                    except QuotaExceededError:
+                        raise ProviderQuotaExceededError()
+                    except ModelCurrentlyNotSupportError:
+                        raise ProviderModelCurrentlyNotSupportError()
+                    except InvokeError as e:
+                        raise CompletionRequestError(e.description)
+                    except ValueError as e:
+                        raise e
+                    except Exception as e:
+                        logging.exception("internal server error.")
+                        raise InternalServerError()
+                return helper.compact_generate_responses(responses)
+            else:
+                responses = []
+                for data in result["data"]:
+                    inputs = {}
+                    for i, input_tb_field in enumerate(input_tb_fields):
+                        inputs[input_tb_field["input"]] = data[i]
+                    responses.append(inputs)
+                return {"result": responses}, 200
         else:
             ds_id = ""
             if args["from_pro"] == "dmc":
@@ -126,7 +135,7 @@ class InstalledAppBatchRunApi(InstalledAppResource):
                     # raise ValueError("table count more than %s" % dify_config.OPENDS_QUERY_LIMIT)
             installed_app_batch_run.delay(args=args, app_id=app_model.id, current_user=current_user.id, ds_id=ds_id)
             # installed_app_batch_run(args, app_model, current_user, ds_id)
-            return {"result": "success"}
+            return {"result": "success"}, 200
 
 
 class BatchRunRecordApi(Resource):
