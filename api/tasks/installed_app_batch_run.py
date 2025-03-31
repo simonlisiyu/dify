@@ -155,6 +155,7 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
                     continue
                 if (i + 1) % opends_tb_commit_limit == 0:
                     opendsClient.tb_data_insert(output_tb_id, fields, output_datas)
+                    opendsClient.tb_commit(output_tb_id)
                     installed_app_batch_run_record_model.success_data_count = success_data_count
                     installed_app_batch_run_record_model.fail_data_count = fail_data_count
                     installed_app_batch_run_record_model.status = BatchRunRecordStatus.RUNNING.value
@@ -163,7 +164,7 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
                     output_datas = []
             if len(output_datas) > 0:
                 opendsClient.tb_data_insert(output_tb_id, fields, output_datas)
-            opendsClient.tb_commit(output_tb_id)
+                opendsClient.tb_commit(output_tb_id)
             opendsClient.tb_update([output_tb_id])
             installed_app_batch_run_record_model.success_data_count = success_data_count
             installed_app_batch_run_record_model.fail_data_count = fail_data_count
