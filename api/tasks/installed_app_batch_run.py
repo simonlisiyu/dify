@@ -79,7 +79,6 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
         result = opendsClient.tb_data_query(input_tb_id, input_tb_field_ids, dify_config.OPENDS_QUERY_LIMIT)
 
         installed_app_batch_run_record_model.output_tb_id = output_tb_id
-        installed_app_batch_run_record_model.all_data_count = result["df_length"]
         db.session.add(installed_app_batch_run_record_model)
         db.session.commit()
 
@@ -87,66 +86,74 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
         success_data_count = 0
         fail_data_count = 0
         opends_tb_commit_limit = dify_config.OPENDS_TB_COMMIT_COUNT
-        for i, data in enumerate(result["data"]):
-            try:
-                inputs = {}
-                outputs = {}
-                for j, input_tb_field in enumerate(input_tb_fields):
-                    inputs[input_tb_field["input"]] = data[j]
-                if app_model.mode == AppMode.COMPLETION.value:
-                    response = AppGenerateService.generate(
-                        app_model=app_model, user=current_user, args={"inputs": inputs, "query": ""},
-                        invoke_from=InvokeFrom.EXPLORE.value, streaming=False
-                    )
-                    output_datas.append([response["answer"]])
-                else:
-                    response = AppGenerateService.generate(
-                        app_model=app_model, user=current_user, args={"inputs": inputs, "query": ""},
-                        invoke_from=InvokeFrom.DEBUGGER.value, streaming=True
-                    )
-                    response_list = []
-                    while True:
-                        try:
-                            response_info = next(response)
-                            response_list.append(response_info)
-                        except StopIteration:
-                           break
-                    # response = helper.compact_generate_response(response)
-                    # response_list = response.data.decode().strip("\n\n").split("\n\n")
-                    for response_info in response_list:
-                        response_info = json.loads(response_info.replace("data: ", ""))
-                        if response_info["event"] == "node_finished" and response_info["data"]["node_type"] == "end" \
-                                and response_info["data"]["outputs"] is not None:
-                            for output_key, output_value in response_info["data"]["outputs"].items():
-                                outputs[response_info["data"]["title"] + "_" + output_key] = output_value
+        if result == "" or len(result["data"]) == 0:
+            installed_app_batch_run_record_model.all_data_count = 0
+            installed_app_batch_run_record_model.fail_data_count = fail_data_count
+            installed_app_batch_run_record_model.success_data_count = success_data_count
+            installed_app_batch_run_record_model.status = BatchRunRecordStatus.SUCCESS.value
+            db.session.add(installed_app_batch_run_record_model)
+            db.session.commit()
+        else:
+            installed_app_batch_run_record_model.all_data_count = result["df_length"]
+            for i, data in enumerate(result["data"]):
+                try:
+                    inputs = {}
+                    outputs = {}
+                    for j, input_tb_field in enumerate(input_tb_fields):
+                        inputs[input_tb_field["input"]] = data[j]
+                    if app_model.mode == AppMode.COMPLETION.value:
+                        response = AppGenerateService.generate(
+                            app_model=app_model, user=current_user, args={"inputs": inputs, "query": ""},
+                            invoke_from=InvokeFrom.EXPLORE.value, streaming=False
+                        )
+                        output_datas.append([response["answer"]])
+                    else:
+                        response = AppGenerateService.generate(
+                            app_model=app_model, user=current_user, args={"inputs": inputs, "query": ""},
+                            invoke_from=InvokeFrom.DEBUGGER.value, streaming=True
+                        )
+                        response_list = []
+                        while True:
+                            try:
+                                response_info = next(response)
+                                response_list.append(response_info)
+                            except StopIteration:
+                               break
+                        # response = helper.compact_generate_response(response)
+                        # response_list = response.data.decode().strip("\n\n").split("\n\n")
+                        for response_info in response_list:
+                            response_info = json.loads(response_info.replace("data: ", ""))
+                            if response_info["event"] == "node_finished" and response_info["data"]["node_type"] == "end" \
+                                    and response_info["data"]["outputs"] is not None:
+                                for output_key, output_value in response_info["data"]["outputs"].items():
+                                    outputs[response_info["data"]["title"] + "_" + output_key] = output_value
 
-                    output_data = []
-                    print(outputs)
-                    for k, output_tb_field in enumerate(output_tb_fields):
-                        output_data.append(outputs.get(output_tb_field["node"] + "_" + output_tb_field["output"], ""))
-                    output_datas.append(output_data)
-                success_data_count += 1
-            except Exception as e:
-                fail_data_count += 1
-                logging.exception("internal server error.")
-                continue
-            if (i + 1) % opends_tb_commit_limit == 0:
+                        output_data = []
+                        for k, output_tb_field in enumerate(output_tb_fields):
+                            output_data.append(outputs.get(output_tb_field["node"] + "_" + output_tb_field["output"], ""))
+                        output_datas.append(output_data)
+                    success_data_count += 1
+                except Exception as e:
+                    fail_data_count += 1
+                    logging.exception("internal server error.")
+                    continue
+                if (i + 1) % opends_tb_commit_limit == 0:
+                    opendsClient.tb_data_insert(output_tb_id, fields, output_datas)
+                    installed_app_batch_run_record_model.success_data_count = success_data_count
+                    installed_app_batch_run_record_model.fail_data_count = fail_data_count
+                    installed_app_batch_run_record_model.status = BatchRunRecordStatus.RUNNING.value
+                    db.session.add(installed_app_batch_run_record_model)
+                    db.session.commit()
+                    output_datas = []
+            if len(output_datas) > 0:
                 opendsClient.tb_data_insert(output_tb_id, fields, output_datas)
-                installed_app_batch_run_record_model.success_data_count = success_data_count
-                installed_app_batch_run_record_model.fail_data_count = fail_data_count
-                installed_app_batch_run_record_model.status = BatchRunRecordStatus.RUNNING.value
-                db.session.add(installed_app_batch_run_record_model)
-                db.session.commit()
-                output_datas = []
-        if len(output_datas) > 0:
-            opendsClient.tb_data_insert(output_tb_id, fields, output_datas)
-        opendsClient.tb_commit(output_tb_id)
-        opendsClient.tb_update([output_tb_id])
-        installed_app_batch_run_record_model.success_data_count = success_data_count
-        installed_app_batch_run_record_model.fail_data_count = fail_data_count
-        installed_app_batch_run_record_model.status = BatchRunRecordStatus.SUCCESS.value
-        db.session.add(installed_app_batch_run_record_model)
-        db.session.commit()
+            opendsClient.tb_commit(output_tb_id)
+            opendsClient.tb_update([output_tb_id])
+            installed_app_batch_run_record_model.success_data_count = success_data_count
+            installed_app_batch_run_record_model.fail_data_count = fail_data_count
+            installed_app_batch_run_record_model.status = BatchRunRecordStatus.SUCCESS.value
+            db.session.add(installed_app_batch_run_record_model)
+            db.session.commit()
     except Exception as e:
         installed_app_batch_run_record_model.status = BatchRunRecordStatus.FAIL.value
         installed_app_batch_run_record_model.error_msg = traceback.format_exc()

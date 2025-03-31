@@ -72,6 +72,8 @@ class InstalledAppBatchRunApi(InstalledAppResource):
             result = opendsClient.tb_data_query(input_tb_id, input_tb_field_ids, 5)
             if result == "":
                 raise ValueError("table data query error")
+            if len(result["data"]) == 0:
+                raise ValueError("table data is empty")
             for data in result["data"]:
                 inputs = {}
                 for i, input_tb_field in enumerate(input_tb_fields):
