@@ -66,7 +66,7 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
         output_tb_fields = args["output_tb_fields"]
         schema = [{
             "name": output_tb_field["name"],
-            "type": output_tb_field["type"],
+            "type": output_tb_field["type"] if output_tb_field["type"] else "string",
             "remark": output_tb_field["remark"],
             "title": output_tb_field["name"],
         } for output_tb_field in output_tb_fields]
