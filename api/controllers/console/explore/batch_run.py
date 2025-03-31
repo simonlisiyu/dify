@@ -114,14 +114,16 @@ class InstalledAppBatchRunApi(InstalledAppResource):
                     ds_id = opendsClient.ds_create(dify_config.OPENDS_AI_DS_NAME)["ds_id"]
                 dmc_tb_info = opendsClient.dmc_tb_info(args["input_tb_id"])
                 if dmc_tb_info["data_count"] > dify_config.OPENDS_QUERY_LIMIT:
-                    raise ValueError("table count more than %s" % dify_config.OPENDS_QUERY_LIMIT)
+                    raise ValueError("table count more than limit")
+                    # raise ValueError("table count more than %s" % dify_config.OPENDS_QUERY_LIMIT)
             if args["from_pro"] == "etl":
                 etl_tb_list = opendsClient.etl_tb_list(args["output_tb_name"])
                 if len(etl_tb_list) > 0:
                     raise ValueError("table name already exists")
                 etl_tb_info = opendsClient.etl_tb_info(args["input_tb_id"])
                 if etl_tb_info["data_count"] > dify_config.OPENDS_QUERY_LIMIT:
-                    raise ValueError("table count more than %s" % dify_config.OPENDS_QUERY_LIMIT)
+                    raise ValueError("table count more than limit")
+                    # raise ValueError("table count more than %s" % dify_config.OPENDS_QUERY_LIMIT)
             installed_app_batch_run.delay(args=args, app_id=app_model.id, current_user=current_user.id, ds_id=ds_id)
             # installed_app_batch_run(args, app_model, current_user, ds_id)
             return {"result": "success"}
