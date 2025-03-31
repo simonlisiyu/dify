@@ -25,6 +25,9 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
     input_tb_fields = args["input_tb_fields"]
     folder_from = args["folder_from"]
     input_tb_field_ids = [field["fid"] for field in input_tb_fields]
+    dmc_request = 0
+    if args["from_pro"] == "dmc":
+        dmc_request = 1
     # 创建InstalledAppBatchRun
     installed_app_batch_run_model = db.session.query(InstalledAppBatchRun).filter(
         InstalledAppBatchRun.app_id == app_model.id).first()
@@ -76,7 +79,8 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
         else:
             output_tb_id = opendsClient.etl_tb_create(name, schema, name, remark)["tb_id"]
 
-        result = opendsClient.tb_data_query(input_tb_id, input_tb_field_ids, dify_config.OPENDS_QUERY_LIMIT)
+        result = opendsClient.tb_data_query(input_tb_id, input_tb_field_ids,
+                                            dify_config.OPENDS_QUERY_LIMIT, dmc_request)
 
         installed_app_batch_run_record_model.output_tb_id = output_tb_id
         db.session.add(installed_app_batch_run_record_model)

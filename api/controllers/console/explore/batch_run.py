@@ -58,6 +58,9 @@ class InstalledAppBatchRunApi(InstalledAppResource):
         parser.add_argument("folder_from", type=str, required=True, nullable=False, default="", location="json")
         parser.add_argument("mode", type=str, required=True, nullable=False, location="json")
         args = parser.parse_args()
+        dmc_request = 0
+        if args["from_pro"] == "dmc":
+            dmc_request = 1
 
         opendsClient = OpendsClient()
 
@@ -69,7 +72,7 @@ class InstalledAppBatchRunApi(InstalledAppResource):
             input_tb_id = args["input_tb_id"]
             input_tb_fields = args["input_tb_fields"]
             input_tb_field_ids = [field["fid"] for field in input_tb_fields]
-            result = opendsClient.tb_data_query(input_tb_id, input_tb_field_ids, 5)
+            result = opendsClient.tb_data_query(input_tb_id, input_tb_field_ids, 5, dmc_request)
             if result == "":
                 raise ValueError("工作表数据查询出错")
             if len(result["data"]) == 0:
@@ -179,7 +182,7 @@ class BatchRunRecordApi(Resource):
                         dify_config.DMC_HOST, batch_run_record.input_tb_id, batch_run_record.input_tb_name)
                 else:
                     batch_run_record.input_tb_url = dify_config.DMC_HOST
-            elif args["from_pro"] == "dmc":
+            elif batch_run_record.from_pro == "dmc":
                 batch_run_record.output_tb_url = "%s/tb-details/%s/data-preview?tbType=RAW" \
                                                  % (dify_config.DMC_HOST, batch_run_record.output_tb_id)
                 if batch_run_record.folder_from == "MAP":

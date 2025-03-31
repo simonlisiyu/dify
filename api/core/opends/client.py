@@ -52,8 +52,8 @@ class OpendsClient:
         response = self._send_request("POST", "/api/etl/folder/etl_tb_list", json=None, params=params)
         return response["result"]
 
-    def tb_data_query(self, tb_id, fields, limit):
-        params = {"tb_id": tb_id, "fields": json.dumps(fields), "limit": limit}
+    def tb_data_query(self, tb_id, fields, limit, dmc_request):
+        params = {"tb_id": tb_id, "fields": json.dumps(fields), "limit": limit, "dmc_request": dmc_request}
         response = self._send_request("POST", "/api/tb/query", json=None, params=params)
         return response["result"]
 
