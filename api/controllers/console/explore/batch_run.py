@@ -151,7 +151,7 @@ class InstalledAppBatchRunApi(InstalledAppResource):
 
             installed_app_batch_run.delay(args=args, app_id=app_model.id, current_user=current_user.id, ds_id=ds_id)
             # installed_app_batch_run(args, app_model, current_user, ds_id)
-            return {"result": "success"}, 200
+            return {"result": "success", "folder_name": dify_config.OPENDS_AI_DS_NAME}, 200
 
 
 class BatchRunRecordApi(Resource):
