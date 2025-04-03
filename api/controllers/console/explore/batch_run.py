@@ -53,6 +53,7 @@ class InstalledAppBatchRunApi(InstalledAppResource):
         parser.add_argument("input_tb_name", type=str, required=True, nullable=False, location="json")
         parser.add_argument("input_tb_fields", type=list, required=True, nullable=False, location="json")
         parser.add_argument("output_tb_fields", type=list, required=True, nullable=False, location="json")
+        parser.add_argument("output_tb_relation_fields", type=list, default=[], required=False, nullable=True, location="json")
         parser.add_argument("output_tb_name", type=str, required=True, nullable=False, location="json")
         parser.add_argument("output_tb_remark", type=str, required=True, nullable=False, location="json")
         parser.add_argument("folder_from", type=str, required=True, nullable=False, default="", location="json")
@@ -136,6 +137,18 @@ class InstalledAppBatchRunApi(InstalledAppResource):
                 if etl_tb_info["data_count"] > dify_config.OPENDS_QUERY_LIMIT:
                     raise ValueError("工作表数据量超过最大限制:%s条" % dify_config.OPENDS_QUERY_LIMIT)
                     # raise ValueError("table count more than %s" % dify_config.OPENDS_QUERY_LIMIT)
+            # 校验重名
+            output_tb_fields = args["output_tb_fields"]
+            output_tb_relation_fields = args["output_tb_relation_fields"]
+            output_tb_relation_names = [field["name"] for field in output_tb_relation_fields]
+            output_tb_field_names = [field["name"] for field in output_tb_fields]
+            all_output_tb_field_names = output_tb_relation_names + output_tb_field_names
+            # all_output_tb_field_names存在重复，并提示重复的字段
+            if len(all_output_tb_field_names) != len(set(all_output_tb_field_names)):
+                duplicate_fields = [field for field in all_output_tb_field_names if
+                                    all_output_tb_field_names.count(field) > 1]
+                raise ValueError("输出数据表字段名称重复: %s" % ", ".join(duplicate_fields))
+
             installed_app_batch_run.delay(args=args, app_id=app_model.id, current_user=current_user.id, ds_id=ds_id)
             # installed_app_batch_run(args, app_model, current_user, ds_id)
             return {"result": "success"}, 200

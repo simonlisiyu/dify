@@ -1,5 +1,6 @@
-import logging
+import datetime
 import json
+import logging
 import traceback
 
 from collections.abc import Mapping
@@ -24,7 +25,10 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
     input_tb_id = args["input_tb_id"]
     input_tb_fields = args["input_tb_fields"]
     folder_from = args["folder_from"]
+    output_tb_relation_fields = args["output_tb_relation_fields"]
     input_tb_field_ids = [field["fid"] for field in input_tb_fields]
+    output_tb_relation_field_ids = [field["fid"] for field in output_tb_relation_fields]
+    all_query_tb_field_ids = output_tb_relation_field_ids + input_tb_field_ids
     dmc_request = 0
     if args["from_pro"] == "dmc":
         dmc_request = 1
@@ -67,26 +71,33 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
         opendsClient = OpendsClient()
         # 创建工作表
         output_tb_fields = args["output_tb_fields"]
-        input_schema = [{
-            "name": "input_%s" % input_tb_field["input"],
-            "type": "string",
-            "remark": "",
-            "title": "input_%s" % input_tb_field["input"]
-        } for input_tb_field in input_tb_fields]
+        output_relation_schema = [{
+            "name": output_tb_field["name"],
+            "type": output_tb_field["type"] if output_tb_field["type"] else "string",
+            "remark": output_tb_field["remark"],
+            "title": output_tb_field["name"]
+        } for output_tb_field in output_tb_relation_fields]
+        # input_schema = [{
+        #     "name": "input_%s" % input_tb_field["input"],
+        #     "type": "string",
+        #     "remark": "",
+        #     "title": "input_%s" % input_tb_field["input"]
+        # } for input_tb_field in input_tb_fields]
         output_schema = [{
             "name": output_tb_field["name"],
             "type": output_tb_field["type"] if output_tb_field["type"] else "string",
             "remark": output_tb_field["remark"],
             "title": output_tb_field["name"]
         } for output_tb_field in output_tb_fields]
-        schema = input_schema + output_schema
+        # schema = output_relation_schema + input_schema + output_schema
+        schema = output_relation_schema + output_schema
         fields = [field["name"] for field in schema]
         if args["from_pro"] == "dmc":
             output_tb_id = opendsClient.tb_create(name, ds_id, schema, name, remark)["tb_id"]
         else:
             output_tb_id = opendsClient.etl_tb_create(name, schema, name, remark)["tb_id"]
 
-        result = opendsClient.tb_data_query(input_tb_id, input_tb_field_ids,
+        result = opendsClient.tb_data_query(input_tb_id, all_query_tb_field_ids,
                                             dify_config.OPENDS_QUERY_LIMIT, dmc_request)
 
         installed_app_batch_run_record_model.output_tb_id = output_tb_id
@@ -114,14 +125,15 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
                     inputs = {}
                     outputs = {}
                     for j, input_tb_field in enumerate(input_tb_fields):
-                        inputs[input_tb_field["input"]] = data[j]
+                        inputs[input_tb_field["input"]] = data[len(output_tb_relation_fields) + j]
                     if app_model.mode == AppMode.COMPLETION.value:
                         response = AppGenerateService.generate(
                             app_model=app_model, user=current_user, args={"inputs": inputs, "query": ""},
                             invoke_from=InvokeFrom.EXPLORE.value, streaming=False
                         )
-                        data.extend([response["answer"]])
-                        output_datas.append(data)
+                        insert_data = data[0: len(output_tb_relation_fields)] + [response["answer"]]
+                        # data.extend([response["answer"]])
+                        output_datas.append(insert_data)
                     else:
                         response = AppGenerateService.generate(
                             app_model=app_model, user=current_user, args={"inputs": inputs, "query": ""},
@@ -146,8 +158,9 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
                         output_data = []
                         for k, output_tb_field in enumerate(output_tb_fields):
                             output_data.append(outputs.get(output_tb_field["node"] + "_" + output_tb_field["output"], ""))
-                        data.extend(output_data)
-                        output_datas.append(data)
+                        # data.extend(output_data)
+                        insert_data = data[0: len(output_tb_relation_fields)] + output_data
+                        output_datas.append(insert_data)
                     success_data_count += 1
                 except Exception as e:
                     fail_data_count += 1
@@ -167,10 +180,12 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
             opendsClient.tb_update([output_tb_id])
             installed_app_batch_run_record_model.success_data_count = success_data_count
             installed_app_batch_run_record_model.fail_data_count = fail_data_count
+            installed_app_batch_run_record_model.updated_at = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
             installed_app_batch_run_record_model.status = BatchRunRecordStatus.SUCCESS.value
             db.session.add(installed_app_batch_run_record_model)
             db.session.commit()
     except Exception as e:
+        installed_app_batch_run_record_model.updated_at = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
         installed_app_batch_run_record_model.status = BatchRunRecordStatus.FAIL.value
         installed_app_batch_run_record_model.error_msg = traceback.format_exc()
         db.session.add(installed_app_batch_run_record_model)
