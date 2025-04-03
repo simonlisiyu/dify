@@ -67,12 +67,12 @@ class OpendsClient:
         return response["result"]
 
     def tb_create(self, name, ds_id, schema, title, remark):
-        data = {"name": name, "ds_id": ds_id, "schema": schema, "title": title, "remark": remark, "dereplication": 0}
+        data = {"name": name, "ds_id": ds_id, "schema": schema, "title": title, "comment": remark, "dereplication": 0}
         response = self._send_request("POST", "/api/tb/create", json=data, params=None)
         return response["result"]
 
     def etl_tb_create(self, name, schema, title, remark):
-        data = {"name": name, "schema": schema, "title": title, "remark": remark, "dereplication": 0}
+        data = {"name": name, "schema": schema, "title": title, "comment": remark, "dereplication": 0}
         response = self._send_request("POST", "/api/etl/tb/create", json=data, params=None)
         return response["result"]
 
