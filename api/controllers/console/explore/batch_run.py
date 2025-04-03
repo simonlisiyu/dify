@@ -126,6 +126,8 @@ class InstalledAppBatchRunApi(InstalledAppResource):
                 else:
                     ds_id = opendsClient.ds_create(dify_config.OPENDS_AI_DS_NAME)["ds_id"]
                 dmc_tb_info = opendsClient.dmc_tb_info(args["input_tb_id"])
+                if dmc_tb_info["data_count"] == 0:
+                    raise ValueError("工作表数据为空,无法运行")
                 if dmc_tb_info["data_count"] > dify_config.OPENDS_QUERY_LIMIT:
                     raise ValueError("工作表数据量超过最大限制:%s条" % dify_config.OPENDS_QUERY_LIMIT)
                     # raise ValueError("table count more than %s" % dify_config.OPENDS_QUERY_LIMIT)
@@ -134,6 +136,8 @@ class InstalledAppBatchRunApi(InstalledAppResource):
                 if len(etl_tb_list) > 0:
                     raise ValueError("输出数据表名称已存在")
                 etl_tb_info = opendsClient.etl_tb_info(args["input_tb_id"])
+                if etl_tb_info["data_count"] == 0:
+                    raise ValueError("工作表数据为空,无法运行")
                 if etl_tb_info["data_count"] > dify_config.OPENDS_QUERY_LIMIT:
                     raise ValueError("工作表数据量超过最大限制:%s条" % dify_config.OPENDS_QUERY_LIMIT)
                     # raise ValueError("table count more than %s" % dify_config.OPENDS_QUERY_LIMIT)
