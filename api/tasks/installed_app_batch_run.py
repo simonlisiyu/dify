@@ -157,7 +157,7 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
 
                         output_data = []
                         for k, output_tb_field in enumerate(output_tb_fields):
-                            output_data.append(outputs.get(output_tb_field["node"] + "_" + output_tb_field["output"], ""))
+                            output_data.append(outputs.get(output_tb_field["node"] + "_" + output_tb_field["output"], None))
                         # data.extend(output_data)
                         insert_data = data[0: len(output_tb_relation_fields)] + output_data
                         output_datas.append(insert_data)

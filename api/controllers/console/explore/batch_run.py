@@ -227,9 +227,24 @@ class InstalledAppBatchRunOutputApi(InstalledAppResource):
             return {"result": [{"node": "结束", "output": "answer"}]}, 200
         workflow_service = WorkflowService()
         workflow = workflow_service.get_draft_workflow(app_model=app_model)
+        node_dict = {}
+        for node in workflow.graph_dict["nodes"]:
+            for variable in node["data"].get("variables", []):
+                if "type" in variable and variable["type"] != "":
+                    if "text-input" == variable["type"] or "paragraph" == variable["type"]:
+                        node_dict["%s_%s" % (node["id"], variable["variable"])] = "string"
+                    else:
+                        node_dict["%s_%s" % (node["id"], variable["variable"])] = variable["type"]
+            if "outputs" in node["data"] and type(node["data"]["outputs"]) == dict:
+                for output_key, output_value in node["data"].get("outputs", {}).items():
+                    if "type" in output_value and output_value["type"] != "":
+                        node_dict["%s_%s" % (node["id"], output_key)] = output_value["type"]
         outputs = []
         for node in workflow.graph_dict["nodes"]:
             if node["data"]["type"] == "end":
                 for output in node["data"]["outputs"]:
-                    outputs.append({"node": node["data"]["title"], "output": output["variable"]})
+                    node_type = "string"
+                    if "_".join(output["value_selector"]) in node_dict:
+                        node_type = node_dict["_".join(output["value_selector"])]
+                    outputs.append({"node": node["data"]["title"], "output": output["variable"], "type": node_type})
         return {"result": outputs}, 200
