@@ -1,4 +1,5 @@
 import logging
+import json
 
 from flask_restful import reqparse, Resource, marshal_with
 from flask_restful.inputs import int_range # type: ignore
@@ -24,7 +25,7 @@ from extensions.ext_database import db
 from libs import helper
 from libs.login import current_user
 from libs.login import login_required
-from models.model import AppMode, InstalledApp, InstalledAppBatchRunRecord
+from models.model import AppMode, InstalledApp, InstalledAppBatchRunRecord, BatchRunRecordStatus
 from services.app_generate_service import AppGenerateService
 from tasks.installed_app_batch_run import installed_app_batch_run
 from core.opends.client import OpendsClient
@@ -159,7 +160,36 @@ class InstalledAppBatchRunApi(InstalledAppResource):
                                     all_output_tb_field_names.count(field) > 1]
                 raise ValueError("输出数据表字段名称重复: %s" % ", ".join(duplicate_fields))
 
-            installed_app_batch_run.delay(args=args, app_id=app_model.id, current_user=current_user.id, ds_id=ds_id)
+            name = args["output_tb_name"]
+            input_tb_id = args["input_tb_id"]
+            folder_from = args["folder_from"]
+            installed_app_batch_run_record_model = db.session.query(InstalledAppBatchRunRecord)\
+                .filter(InstalledAppBatchRunRecord.folder_from == folder_from)\
+                .filter(InstalledAppBatchRunRecord.output_tb_name == name).one_or_none()
+            if installed_app_batch_run_record_model:
+                raise ValueError("输出数据表名称已存在")
+            installed_app_batch_run_record_model = InstalledAppBatchRunRecord(
+                app_id=app_model.id,
+                tenant_id=app_model.tenant_id,
+                app_name=app_model.name,
+                from_pro=args["from_pro"],
+                input_tb_id=input_tb_id,
+                input_tb_name=args["input_tb_name"],
+                output_tb_id="",
+                output_tb_name=name,
+                created_by=current_user.id,
+                all_data_count=0,
+                success_data_count=0,
+                fail_data_count=0,
+                meta=json.dumps(args),
+                status=BatchRunRecordStatus.NEW.value,
+                folder_from=folder_from
+            )
+            db.session.add(installed_app_batch_run_record_model)
+            db.session.commit()
+
+            installed_app_batch_run.delay(args=args, app_id=app_model.id, current_user=current_user.id, ds_id=ds_id,
+                                          batch_run_record_id=installed_app_batch_run_record_model.id)
             # installed_app_batch_run(args, app_model, current_user, ds_id)
             return {"result": "success", "folder_name": dify_config.OPENDS_AI_DS_NAME}, 200
 

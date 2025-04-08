@@ -17,14 +17,14 @@ from models.model import InstalledAppBatchRun, InstalledAppBatchRunRecord
 
 
 @shared_task(queue="dataset1")
-def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: str, ds_id: str):
+def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: str, ds_id: str,
+                            batch_run_record_id: str):
     app_model = db.session.query(App).filter(App.id == app_id).first()
     current_user = db.session.query(Account).filter(Account.id == current_user).first()
     name = args["output_tb_name"]
     remark = args["output_tb_remark"]
     input_tb_id = args["input_tb_id"]
     input_tb_fields = args["input_tb_fields"]
-    folder_from = args["folder_from"]
     output_tb_relation_fields = args["output_tb_relation_fields"]
     input_tb_field_ids = [field["fid"] for field in input_tb_fields]
     output_tb_relation_field_ids = [field["fid"] for field in output_tb_relation_fields]
@@ -47,25 +47,27 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
         db.session.add(installed_app_batch_run_model)
         db.session.commit()
     #
-    installed_app_batch_run_record_model = InstalledAppBatchRunRecord(
-        app_id=app_model.id,
-        tenant_id=app_model.tenant_id,
-        app_name=app_model.name,
-        from_pro=args["from_pro"],
-        input_tb_id=input_tb_id,
-        input_tb_name=args["input_tb_name"],
-        output_tb_id="",
-        output_tb_name=name,
-        created_by=current_user.id,
-        all_data_count=0,
-        success_data_count=0,
-        fail_data_count=0,
-        meta=json.dumps(args),
-        status=BatchRunRecordStatus.NEW.value,
-        folder_from=folder_from
-    )
-    db.session.add(installed_app_batch_run_record_model)
-    db.session.commit()
+    # installed_app_batch_run_record_model = InstalledAppBatchRunRecord(
+    #     app_id=app_model.id,
+    #     tenant_id=app_model.tenant_id,
+    #     app_name=app_model.name,
+    #     from_pro=args["from_pro"],
+    #     input_tb_id=input_tb_id,
+    #     input_tb_name=args["input_tb_name"],
+    #     output_tb_id="",
+    #     output_tb_name=name,
+    #     created_by=current_user.id,
+    #     all_data_count=0,
+    #     success_data_count=0,
+    #     fail_data_count=0,
+    #     meta=json.dumps(args),
+    #     status=BatchRunRecordStatus.NEW.value,
+    #     folder_from=folder_from
+    # )
+    # db.session.add(installed_app_batch_run_record_model)
+    # db.session.commit()
+    installed_app_batch_run_record_model = db.session.query(InstalledAppBatchRunRecord).filter(
+        InstalledAppBatchRunRecord.id == batch_run_record_id).first()
 
     try:
         opendsClient = OpendsClient()
