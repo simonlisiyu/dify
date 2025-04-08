@@ -224,14 +224,15 @@ class InstalledAppBatchRunOutputApi(InstalledAppResource):
         if app_mode != AppMode.WORKFLOW and app_mode != AppMode.COMPLETION:
             raise NotWorkflowAppError()
         if app_mode == AppMode.COMPLETION:
-            return {"result": [{"node": "结束", "output": "answer"}]}, 200
+            return {"result": [{"node": "结束", "output": "answer", "type": "string"}]}, 200
         workflow_service = WorkflowService()
         workflow = workflow_service.get_draft_workflow(app_model=app_model)
         node_dict = {}
         for node in workflow.graph_dict["nodes"]:
             for variable in node["data"].get("variables", []):
                 if "type" in variable and variable["type"] != "":
-                    if "text-input" == variable["type"] or "paragraph" == variable["type"]:
+                    if "text-input" == variable["type"] \
+                            or "paragraph" == variable["type"] or "select" == variable["type"]:
                         node_dict["%s_%s" % (node["id"], variable["variable"])] = "string"
                     else:
                         node_dict["%s_%s" % (node["id"], variable["variable"])] = variable["type"]
