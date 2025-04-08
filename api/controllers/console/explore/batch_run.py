@@ -144,6 +144,12 @@ class InstalledAppBatchRunApi(InstalledAppResource):
             # 校验重名
             output_tb_fields = args["output_tb_fields"]
             output_tb_relation_fields = args["output_tb_relation_fields"]
+            for field in output_tb_fields:
+                if "name" in field and not field["name"]:
+                    raise ValueError("输出字段名称存在为空")
+            for field in output_tb_relation_fields:
+                if "name" in field and not field["name"]:
+                    raise ValueError("关联输出字段名称存在为空")
             output_tb_relation_names = [field["name"] for field in output_tb_relation_fields]
             output_tb_field_names = [field["name"] for field in output_tb_fields]
             all_output_tb_field_names = output_tb_relation_names + output_tb_field_names
