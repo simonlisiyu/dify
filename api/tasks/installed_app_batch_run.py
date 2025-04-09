@@ -26,7 +26,7 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
     input_tb_id = args["input_tb_id"]
     input_tb_fields = args["input_tb_fields"]
     output_tb_relation_fields = args["output_tb_relation_fields"]
-    input_tb_field_ids = [field["fid"] for field in input_tb_fields]
+    input_tb_field_ids = [field.get("fid", "''") for field in input_tb_fields]
     output_tb_relation_field_ids = [field["fid"] for field in output_tb_relation_fields]
     all_query_tb_field_ids = output_tb_relation_field_ids + input_tb_field_ids
     dmc_request = 0

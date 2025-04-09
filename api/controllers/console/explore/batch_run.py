@@ -58,6 +58,7 @@ class InstalledAppBatchRunApi(InstalledAppResource):
         parser.add_argument("output_tb_name", type=str, required=True, nullable=False, location="json")
         parser.add_argument("output_tb_remark", type=str, required=True, nullable=False, location="json")
         parser.add_argument("folder_from", type=str, required=True, nullable=False, default="", location="json")
+        parser.add_argument("tb_type", type=str, nullable=False, default="access", location="json")
         parser.add_argument("mode", type=str, required=True, nullable=False, location="json")
         args = parser.parse_args()
         dmc_request = 0
@@ -73,7 +74,7 @@ class InstalledAppBatchRunApi(InstalledAppResource):
             responses = []
             input_tb_id = args["input_tb_id"]
             input_tb_fields = args["input_tb_fields"]
-            input_tb_field_ids = [field["fid"] for field in input_tb_fields]
+            input_tb_field_ids = [field.get("fid", "''") for field in input_tb_fields]
             result = opendsClient.tb_data_query(input_tb_id, input_tb_field_ids, 5, dmc_request)
             if result == "":
                 raise ValueError("工作表数据查询出错")
@@ -203,9 +204,9 @@ class BatchRunRecordApi(Resource):
         Run workflow
         """
         parser = reqparse.RequestParser()
-        parser.add_argument("keyword", type=str, location="args")
-        parser.add_argument("page", type=int_range(1, 99999), default=1, location="args")
-        parser.add_argument("limit", type=int_range(1, 100), default=20, location="args")
+        parser.add_argument("keyword", type=str, location="json")
+        parser.add_argument("page", type=int_range(1, 99999), default=1, location="json")
+        parser.add_argument("limit", type=int_range(1, 100), default=20, location="json")
         args = parser.parse_args()
         query = db.select(InstalledAppBatchRunRecord)
 
@@ -216,6 +217,7 @@ class BatchRunRecordApi(Resource):
         for batch_run_record in batch_run_records.items:
             if batch_run_record.from_pro == "etl":
                 input_tb_url = ""
+                meta = json.loads(batch_run_record.meta)
                 batch_run_record.output_tb_url = "%s/doraemon/#/datamodel/data-preview/%s?moduleName=dataPersonal" \
                                                  "&tbName=%s&type=opends&storageType=1&tbType=self&backId=folder_root" \
                                                  % (dify_config.DMC_HOST, batch_run_record.output_tb_id,
@@ -225,7 +227,7 @@ class BatchRunRecordApi(Resource):
                                                     "&tbName=%s&tbType=access"
                 elif batch_run_record.folder_from == "personal_upload_database":
                     input_tb_url = "%s/doraemon/#/datamodel/data-preview/%s?moduleName=dataPersonal" \
-                                                    "&tbName=%s&tbType=access"
+                                                    "&tbName=%s&tbType=" + meta.get("tb_type", "access")
 
                 elif batch_run_record.folder_from == "dataflow_result_database":
                     input_tb_url = "%s/doraemon/#/datamodel/data-preview/%s?moduleName=dataModel" \
