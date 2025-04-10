@@ -16,7 +16,8 @@ from extensions.ext_database import db
 from models.model import InstalledAppBatchRun, InstalledAppBatchRunRecord
 
 
-@shared_task(queue="dataset1")
+# @shared_task(queue="dataset1")
+@shared_task(queue="dataset")
 def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: str, ds_id: str,
                             batch_run_record_id: str):
     app_model = db.session.query(App).filter(App.id == app_id).first()
