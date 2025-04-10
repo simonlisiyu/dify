@@ -234,6 +234,9 @@ class DatasetService:
                 external_knowledge_api_id=external_knowledge_api_id,
                 external_knowledge_id=external_knowledge_id,
                 created_by=account.id,
+                # [Starry] directory dataset
+                account_id=account.id,
+                directory_id=directory_id,
             )
             db.session.add(external_knowledge_binding)
 

@@ -66,7 +66,13 @@ class LocalAITextEmbeddingModel(TextEmbeddingModel):
         try:
             logger.info(f'url: {url}')
             logger.info(f'data: {data}')
-            response = post(str(URL(url) / 'embeddings'), headers=headers, data=dumps(data), timeout=10)
+            server_url_standard = credentials.get('server_url_standard', 'standard')
+            is_standard = server_url_standard.lower() == 'standard'
+            if is_standard:
+                full_url = str(URL(url) / 'rerank')
+            else:
+                full_url = str(URL(url))
+            response = post(full_url, headers=headers, data=dumps(data), timeout=10)
             logger.info(f'response: {response}')
         except Exception as e:
             raise InvokeConnectionError(str(e))

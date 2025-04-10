@@ -158,6 +158,7 @@ class ApiToolManageService:
             custom_disclaimer=custom_disclaimer,
             # [Starry] directory tool
             directory_id=directory_id,
+            account_id=user_id,
         )
 
         if "auth_type" not in credentials:

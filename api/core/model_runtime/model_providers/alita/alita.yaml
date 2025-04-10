@@ -41,6 +41,25 @@ model_credential_schema:
       placeholder:
         zh_Hans: 在此输入Alita的服务器地址，如 http://192.168.1.100:23620
         en_US: Enter the url of your Alita, e.g. http://192.168.1.100:23620
+    - variable: server_url_standard
+      label:
+        en_US: Is Server url Standard
+        zh_Hans: 服务器URL是否标准
+      type: select
+      required: true
+      default: standard
+      placeholder:
+        zh_Hans: 选择是否标准
+        en_US: Select standard type
+      options:
+        - value: standard
+          label:
+            en_US: standard
+            zh_Hans: 标准
+        - value: not_standard
+          label:
+            en_US: not_standard
+            zh_Hans: 不标准
     - variable: api_key
       label:
         en_US: Alita API Key
@@ -48,7 +67,8 @@ model_credential_schema:
       required: false
       placeholder:
         zh_Hans: 在此输入您的 Alita API Key
-        en_US: Enter your API Key
+        en_US:
+          Enter your API Key
     - variable: completion_type
       show_on:
         - variable: __model_type

@@ -47,7 +47,11 @@ class OAICompatText2SpeechModel(_CommonOaiApiCompat, TTSModel):
         assert endpoint_url is not None, "endpoint_url is required in credentials"
         if not endpoint_url.endswith("/"):
             endpoint_url += "/"
-        endpoint_url = urljoin(endpoint_url, "audio/speech")
+
+        server_url_standard = credentials.get('server_url_standard', 'standard')
+        is_standard = server_url_standard.lower() == 'standard'
+        if is_standard:
+            endpoint_url = urljoin(endpoint_url, "audio/speech")
 
         # Get audio format from model properties
         audio_format = self._get_model_audio_type(model, credentials)

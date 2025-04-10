@@ -670,6 +670,7 @@ class TenantService:
         if ta:
             ta.role = role
         else:
+            logging.info(f"role={role}")
             ta = TenantAccountJoin(tenant_id=tenant.id, account_id=account.id, role=role)
             db.session.add(ta)
 
@@ -925,6 +926,7 @@ class RegisterService:
         name,
         # [Starry] directory user
         role,
+        tenant_id: Optional[str] = None,
         password: Optional[str] = None,
         open_id: Optional[str] = None,
         provider: Optional[str] = None,
@@ -946,8 +948,13 @@ class RegisterService:
             account.status = AccountStatus.ACTIVE.value if not status else status.value
             account.initialized_at = datetime.now(UTC).replace(tzinfo=None)
             # [Starry] directory user
-            tenant = TenantService.get_current_tenant_by_id(current_user.current_tenant_id)
+            if tenant_id is None:
+                tenant_id = current_user.current_tenant_id
+            tenant = TenantService.get_current_tenant_by_id(tenant_id)
+            logging.info(f"tenant_id={tenant.id}")
+            logging.info(f"account_id={account.id}")
             TenantService.create_tenant_member(tenant, account, role=role)
+
 
             if open_id is not None and provider is not None:
                 AccountService.link_account_integrate(provider, open_id, account)
