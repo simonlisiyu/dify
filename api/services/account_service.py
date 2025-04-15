@@ -951,8 +951,8 @@ class RegisterService:
             if tenant_id is None:
                 tenant_id = current_user.current_tenant_id
             tenant = TenantService.get_current_tenant_by_id(tenant_id)
-            logging.info(f"tenant_id={tenant.id}")
-            logging.info(f"account_id={account.id}")
+            # logging.info(f"tenant_id={tenant.id}")
+            # logging.info(f"account_id={account.id}")
             TenantService.create_tenant_member(tenant, account, role=role)
 
 
