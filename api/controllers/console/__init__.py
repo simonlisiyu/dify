@@ -167,4 +167,13 @@ from .tag import tags
 
 # [Starry] directory add
 # Import workspace controllers
-from .workspace import account, load_balancing_config, members, model_providers, models, tool_providers, workspace, directory
+from .workspace import (
+    account,
+    directory,
+    load_balancing_config,
+    members,
+    model_providers,
+    models,
+    tool_providers,
+    workspace,
+)

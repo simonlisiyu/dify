@@ -6,7 +6,7 @@ from flask import Blueprint
 
 from libs.external_api import ExternalApi
 
-from .outer_services import DatasetApi, DatasetAddFileApi
+from .outer_services import DatasetAddFileApi, DatasetApi
 from .sso_services import SSOLoginApi
 
 # Outer

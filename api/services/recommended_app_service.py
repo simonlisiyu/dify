@@ -1,12 +1,15 @@
+import logging
 from typing import Optional
 
+import yaml
+
 from configs import dify_config
-from services.recommend_app.recommend_app_factory import RecommendAppRetrievalFactory
+
 # [Starry] directory app
 from extensions.ext_database import db
 from models.model import AppMode, TemplateApp
-import logging
-import yaml
+from services.recommend_app.recommend_app_factory import RecommendAppRetrievalFactory
+
 logger = logging.getLogger(__name__)
 
 

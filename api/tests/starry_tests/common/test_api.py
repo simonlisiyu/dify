@@ -1,9 +1,10 @@
 # __author__ "lisiyu"
 # date 2025/2/23
 
-import requests
 import json
 from configparser import ConfigParser
+
+import requests
 
 # 常量配置
 config = ConfigParser()
@@ -23,6 +24,7 @@ valid_payload = {
     "type": "app",
     "parent_id": "b22d949f-e158-4905-8c26-8090813943d7"
 }
+
 
 def test_create_directory():
     try:

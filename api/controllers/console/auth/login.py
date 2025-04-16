@@ -24,7 +24,7 @@ from controllers.console.error import (
 )
 from controllers.console.wraps import setup_required
 from events.tenant_event import tenant_was_created
-from libs.helper import email, extract_remote_ip
+from libs.helper import extract_remote_ip
 from libs.password import valid_password
 from models.account import Account
 from services.account_service import AccountService, RegisterService, TenantService

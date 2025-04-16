@@ -1,3 +1,6 @@
+# [Starry] directory app
+import logging
+
 from flask_restful import marshal_with  # type: ignore
 
 from controllers.common import fields
@@ -7,8 +10,6 @@ from controllers.console.app.error import AppUnavailableError
 from controllers.console.explore.wraps import InstalledAppResource
 from models.model import AppMode, InstalledApp
 from services.app_service import AppService
-# [Starry] directory app
-import logging
 
 
 class AppParameterApi(InstalledAppResource):

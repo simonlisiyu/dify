@@ -1,5 +1,7 @@
 import io
-import logging
+
+# [Starry] directory tool
+import uuid
 
 from flask import send_file
 from flask_login import current_user  # type: ignore
@@ -19,8 +21,6 @@ from services.tools.builtin_tools_manage_service import BuiltinToolManageService
 from services.tools.tool_labels_service import ToolLabelsService
 from services.tools.tools_manage_service import ToolCommonService
 from services.tools.workflow_tools_manage_service import WorkflowToolManageService
-# [Starry] directory tool
-import uuid
 
 
 def uuid_str(value):

@@ -2,22 +2,21 @@
 # __author__ "lisiyu"
 # date 2024/8/22
 
-import uuid
 import logging
-from datetime import datetime, timezone
+import uuid
 
 from flask_login import current_user
-from flask_restful import Resource, inputs, marshal, marshal_with, reqparse
-from werkzeug.exceptions import BadRequest, Forbidden, NotFound, abort
+from flask_restful import Resource, marshal_with, reqparse
+from werkzeug.exceptions import BadRequest, Forbidden, abort
 
 from controllers.console import api
-from controllers.console.wraps import account_initialization_required
 from controllers.console.workspace.wraps import DirectoryResource
-from models.model import Directory
-from fields.directory_fields import directory_fields, dir_tree_fields
+from controllers.console.wraps import account_initialization_required
+from fields.directory_fields import dir_tree_fields
 from libs.login import login_required
-from services.directory_service import DirectoryService
+from models.model import Directory
 from services.account_service import TenantService
+from services.directory_service import DirectoryService
 
 
 def uuid_str(value):
@@ -73,7 +72,7 @@ class DirectoryTreeApi(Resource):
             logging.info(f"Exception={e}")
             raise BadRequest("create directory failed, please change another directory name.")
 
-        return {'message': f'Directory created successfully',
+        return {'message': 'Directory created successfully',
                 'directory_id': directory.id}
 
 
@@ -195,7 +194,6 @@ class DirectoryBindingDeleteApi(Resource):
         directory_service.delete_directory_binding(args['target_ids'], args['type'])
 
         return 200
-
 
 
 api.add_resource(DirectoryTreeApi, '/directory')

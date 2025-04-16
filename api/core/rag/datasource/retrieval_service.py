@@ -1,8 +1,12 @@
 import json
+import logging
 import threading
 from typing import Optional
 
+# [Starry] directory rag
+import jieba
 from flask import Flask, current_app
+from sqlalchemy import or_
 
 from core.rag.data_post_processor.data_post_processor import DataPostProcessor
 from core.rag.datasource.keyword.keyword_factory import Keyword
@@ -16,10 +20,6 @@ from extensions.ext_database import db
 from models.dataset import ChildChunk, Dataset, DocumentSegment
 from models.dataset import Document as DatasetDocument
 from services.external_knowledge_service import ExternalDatasetService
-# [Starry] directory rag
-import jieba
-import logging
-from sqlalchemy import or_
 
 default_retrieval_model = {
     "search_method": RetrievalMethod.SEMANTIC_SEARCH.value,
@@ -34,11 +34,11 @@ logger = logging.getLogger(__name__)
 # stop words
 stop_words = []
 try:
-    with open('/app/data/stopwords.txt', 'r') as file:
+    with open('/app/data/stopwords.txt') as file:
         stop_words = file.read().splitlines()
 except FileNotFoundError:
     logger.info("/app/data/stopwords.txt File not found.")
-except IOError as e:
+except OSError as e:
     logger.info("/app/data/stopwords.txt An error occurred while reading the file:", e)
 # custom words
 try:
@@ -48,7 +48,7 @@ except:
 # synonym words
 synonym_dict = {}
 try:
-    for line in open("/app/data/synonym.txt", "r", encoding='utf-8'):
+    for line in open("/app/data/synonym.txt", encoding='utf-8'):
         words = line.split(" ")
         synonym_dict[words[0]] = words[1]
 except:

@@ -2,11 +2,10 @@
 # __author__ "lisiyu"
 # date 2024/8/21
 
-import logging
 from flask_login import current_user
 from flask_sqlalchemy.pagination import Pagination
-from sqlalchemy import func
 from werkzeug.exceptions import NotFound
+
 from extensions.ext_database import db
 from models.dataset import Dataset
 from models.model import App, Directory, DirectoryBindings
@@ -55,7 +54,6 @@ class DirectoryService:
         """
         directory.name = name
         db.session.commit()
-
 
     def delete_directory(self, directory: Directory) -> Directory:
         filters = [

@@ -1,5 +1,8 @@
 import logging
 
+# [Starry] directory dataset
+import uuid
+
 import flask_restful  # type: ignore
 from flask import request
 from flask_login import current_user  # type: ignore  # type: ignore
@@ -28,8 +31,6 @@ from libs.login import login_required
 from models import ApiToken, Dataset, Document, DocumentSegment, UploadFile
 from models.dataset import DatasetPermissionEnum
 from services.dataset_service import DatasetPermissionService, DatasetService, DocumentService
-# [Starry] directory dataset
-import uuid
 
 
 def _validate_name(name):
@@ -43,12 +44,14 @@ def _validate_description_length(description):
         raise ValueError("Description cannot exceed 400 characters.")
     return description
 
+
 # [Starry] directory dataset
 def uuid_str(value):
     try:
         return str(uuid.UUID(value))
     except ValueError:
         abort(400, message="Invalid UUID format in parent_id.")
+
 
 class DatasetListApi(Resource):
     @setup_required

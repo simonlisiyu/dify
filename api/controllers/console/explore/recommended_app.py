@@ -2,13 +2,13 @@ from flask_login import current_user  # type: ignore
 from flask_restful import Resource, fields, marshal_with, reqparse  # type: ignore
 
 from constants.languages import languages
+
+# [Starry] directory recommend app
 from controllers.console import api
 from controllers.console.wraps import account_initialization_required
 from libs.helper import AppIconUrlField
 from libs.login import login_required
 from services.recommended_app_service import RecommendedAppService
-# [Starry] directory recommend app
-from constants.recommended_modes import modes
 
 app_fields = {
     "id": fields.String,

@@ -1,6 +1,5 @@
 import codecs
 import json
-import logging
 from collections.abc import Generator
 from decimal import Decimal
 from typing import Optional, Union, cast

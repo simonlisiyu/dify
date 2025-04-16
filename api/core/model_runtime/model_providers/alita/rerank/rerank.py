@@ -1,5 +1,5 @@
-from json import dumps
 import logging
+from json import dumps
 from typing import Optional
 
 import httpx
@@ -20,8 +20,8 @@ from core.model_runtime.errors.invoke import (
 from core.model_runtime.errors.validate import CredentialsValidateFailedError
 from core.model_runtime.model_providers.__base.rerank_model import RerankModel
 
-
 logger = logging.getLogger(__name__)
+
 
 class AlitaRerankModel(RerankModel):
     """
@@ -131,7 +131,7 @@ class AlitaRerankModel(RerankModel):
             InvokeConnectionError: [httpx.ConnectError],
             InvokeServerUnavailableError: [httpx.RemoteProtocolError],
             InvokeRateLimitError: [], 
-            InvokeAuthorizationError: [httpx.HTTPStatusError],  
+            InvokeAuthorizationError: [httpx.HTTPStatusError], 
             InvokeBadRequestError: [httpx.RequestError]
         }
     

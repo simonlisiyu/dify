@@ -1,5 +1,5 @@
-import logging
 import json
+import logging
 import re
 import uuid
 from collections.abc import Mapping
@@ -1811,6 +1811,7 @@ class TraceAppConfig(db.Model):  # type: ignore[name-defined]
             "created_at": str(self.created_at) if self.created_at else None,
             "updated_at": str(self.updated_at) if self.updated_at else None,
         }
+
 
 # [Starry] directory
 class Directory(db.Model):

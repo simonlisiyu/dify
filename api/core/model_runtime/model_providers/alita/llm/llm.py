@@ -1,4 +1,3 @@
-import logging
 from collections.abc import Generator
 from typing import cast
 
@@ -610,7 +609,6 @@ class AlitaLanguageModel(LargeLanguageModel):
                     ),
                 )
 
-
     def _handle_chat_generate_stream_response(self, model: str,
                                               prompt_messages: list[PromptMessage],
                                               credentials: dict,
@@ -636,7 +634,7 @@ class AlitaLanguageModel(LargeLanguageModel):
             if delta.delta.function_call:
                 function_calls = [delta.delta.function_call]
 
-            assistant_message_tool_calls = self._extract_response_tool_calls(function_calls if function_calls else [])
+            assistant_message_tool_calls = self._extract_response_tool_calls(function_calls or [])
 
             # transform assistant message to prompt message
             # assistant_prompt_message = AssistantPromptMessage(

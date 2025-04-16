@@ -13,13 +13,15 @@ from sqlalchemy.orm import Session
 
 from core.helper import ssrf_proxy
 from events.app_event import app_model_config_was_updated, app_was_created
+
+# [Starry] directory app
+from extensions.ext_database import db
 from extensions.ext_redis import redis_client
 from factories import variable_factory
 from models import Account, App, AppMode
 from models.model import AppModelConfig
 from services.workflow_service import WorkflowService
-# [Starry] directory app
-from extensions.ext_database import db
+
 current_dsl_version = "0.1.0"
 
 logger = logging.getLogger(__name__)

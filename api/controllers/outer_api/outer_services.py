@@ -4,25 +4,15 @@
 
 import logging
 import uuid
+
 import jwt
-
-from controllers.common.errors import FilenameNotExistsError
-from services.file_service import FileService
-
-from ..console.error import (
-    FileTooLargeError,
-    NoFileUploadedError,
-    TooManyFilesError,
-    UnsupportedFileTypeError,
-)
-
-from flask import request, Response
+from flask import Response, request
 from flask_login import current_user
 from flask_restful import Resource, marshal_with, reqparse
 from werkzeug.exceptions import abort
 
 import services
-from extensions.ext_database import db
+from controllers.common.errors import FilenameNotExistsError
 from controllers.console.app.error import (
     ProviderModelCurrentlyNotSupportError,
     ProviderNotInitializeError,
@@ -36,13 +26,22 @@ from core.errors.error import (
 from core.model_manager import ModelManager
 from core.model_runtime.entities.model_entities import ModelType
 from core.model_runtime.errors.invoke import InvokeAuthorizationError
+from extensions.ext_database import db
 from fields.document_fields import (
     dataset_and_document_fields,
 )
-from services.dataset_service import DatasetService, DocumentService
 from models.account import Account
 from services.account_service import TenantService
+from services.dataset_service import DatasetService, DocumentService
 from services.entities.knowledge_entities.knowledge_entities import KnowledgeConfig
+from services.file_service import FileService
+
+from ..console.error import (
+    FileTooLargeError,
+    NoFileUploadedError,
+    TooManyFilesError,
+    UnsupportedFileTypeError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -50,11 +49,13 @@ PREVIEW_WORDS_LIMIT = 3000
 CLIENTS_TOKENS = {"haizhi": "haizhi", "client2": "test"}
 CLIENT_SECRET = "haizhi_secret"
 
+
 def uuid_str(value):
     try:
         return str(uuid.UUID(value))
     except ValueError:
         abort(400, message="Invalid UUID format in parent_id.")
+
 
 class DatasetApi(Resource):
 

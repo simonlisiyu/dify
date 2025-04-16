@@ -1,4 +1,3 @@
-import logging
 from typing import Optional
 
 from core.tools.entities.common_entities import I18nObject
@@ -16,9 +15,10 @@ from core.tools.provider.tool_provider import ToolProviderController
 from core.tools.tool.api_tool import ApiTool
 from core.tools.tool.tool import Tool
 from extensions.ext_database import db
-from models.tools import ApiToolProvider
+
 # [Starry] directory tool
 from models.model import Directory
+from models.tools import ApiToolProvider
 
 
 class ApiToolProviderController(ToolProviderController):
