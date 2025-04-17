@@ -8,6 +8,8 @@ from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from typing import Any, Optional, cast
 
+# [Starry] directory user
+from flask_login import current_user
 from pydantic import BaseModel
 from sqlalchemy import func
 from werkzeug.exceptions import Unauthorized
@@ -41,7 +43,6 @@ from services.errors.account import (
     AccountPasswordError,
     AccountRegisterError,
     CannotOperateSelfError,
-    CurrentPasswordIncorrectError,
     InvalidActionError,
     LinkAccountIntegrateError,
     MemberNotInTenantError,
@@ -51,13 +52,10 @@ from services.errors.account import (
 )
 from services.errors.workspace import WorkSpaceNotAllowedCreateError
 from services.feature_service import FeatureService
-from tasks.delete_account_task import delete_account_task
 from tasks.mail_account_deletion_task import send_account_deletion_verification_code
 from tasks.mail_email_code_login import send_email_code_login_mail_task
 from tasks.mail_invite_member_task import send_invite_member_mail_task
 from tasks.mail_reset_password_task import send_reset_password_mail_task
-# [Starry] directory user
-from flask_login import current_user
 
 
 class TokenPair(BaseModel):
@@ -954,7 +952,6 @@ class RegisterService:
             # logging.info(f"tenant_id={tenant.id}")
             # logging.info(f"account_id={account.id}")
             TenantService.create_tenant_member(tenant, account, role=role)
-
 
             if open_id is not None and provider is not None:
                 AccountService.link_account_integrate(provider, open_id, account)

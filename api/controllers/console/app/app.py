@@ -1,9 +1,12 @@
+# [Starry] directory app
+import logging
 import uuid
 from typing import cast
 
 from flask_login import current_user  # type: ignore
 from flask_restful import Resource, inputs, marshal, marshal_with, reqparse  # type: ignore
 from sqlalchemy import select
+from sqlalchemy.exc import PendingRollbackError
 from sqlalchemy.orm import Session
 from werkzeug.exceptions import BadRequest, Forbidden, abort
 
@@ -26,11 +29,8 @@ from libs.login import login_required
 from models import Account, App
 from services.app_dsl_service import AppDslService, ImportMode
 from services.app_service import AppService
-# [Starry] directory app
-import logging
 from services.directory_service import DirectoryService
 from services.recommended_app_service import RecommendedAppService
-from sqlalchemy.exc import PendingRollbackError
 
 ALLOW_CREATE_APP_MODES = ["chat", "agent-chat", "advanced-chat", "workflow", "completion"]
 
@@ -232,7 +232,7 @@ class AppCopyApi(Resource):
                 stmt = select(App).where(App.id == result.app_id)
                 app = session.scalar(stmt)
         except PendingRollbackError as pre:
-            logging.error(f"An error occurred during database operation: {pre}")
+            logging.exception(f"An error occurred during database operation: {pre}")
             raise BadRequest("create app failed, please change another app name.")
 
         return app, 201

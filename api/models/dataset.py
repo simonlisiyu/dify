@@ -22,7 +22,7 @@ from services.entities.knowledge_entities.knowledge_entities import ParentMode, 
 
 from .account import Account
 from .engine import db
-from .model import App, Tag, TagBinding, UploadFile, Directory
+from .model import App, Directory, Tag, TagBinding, UploadFile
 from .types import StringUUID
 
 

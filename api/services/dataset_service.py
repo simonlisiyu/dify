@@ -39,6 +39,9 @@ from models.dataset import (
 )
 from models.model import UploadFile
 from models.source import DataSourceOauthBinding
+
+# [Starry] directory dataset
+from services.directory_service import DirectoryService
 from services.entities.knowledge_entities.knowledge_entities import (
     ChildChunkUpdateArgs,
     KnowledgeConfig,
@@ -69,8 +72,6 @@ from tasks.enable_segments_to_index_task import enable_segments_to_index_task
 from tasks.recover_document_indexing_task import recover_document_indexing_task
 from tasks.retry_document_indexing_task import retry_document_indexing_task
 from tasks.sync_website_document_indexing_task import sync_website_document_indexing_task
-# [Starry] directory dataset
-from services.directory_service import DirectoryService
 
 
 class DatasetService:
@@ -197,7 +198,7 @@ class DatasetService:
         external_knowledge_api_id: Optional[str] = None,
         external_knowledge_id: Optional[str] = None,
         # [Starry] directory dataset
-        directory_id = None,
+        directory_id=None,
     ):
         # check if dataset name already exists
         if Dataset.query.filter_by(name=name, tenant_id=tenant_id).first():
@@ -926,7 +927,7 @@ class DocumentService:
                             ).first()
                             if document:
                                 document.dataset_process_rule_id = dataset_process_rule.id  # type: ignore
-                                document.updated_at = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+                                document.updated_at = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
                                 document.created_from = created_from
                                 document.doc_form = knowledge_config.doc_form
                                 document.doc_language = knowledge_config.doc_language
@@ -2149,7 +2150,7 @@ class SegmentService:
                 if cache_result is not None:
                     continue
                 segment.enabled = False
-                segment.disabled_at = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+                segment.disabled_at = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
                 segment.disabled_by = current_user.id
                 db.session.add(segment)
                 real_deal_segmment_ids.append(segment.id)
@@ -2241,7 +2242,7 @@ class SegmentService:
                         child_chunk.content = child_chunk_update_args.content
                         child_chunk.word_count = len(child_chunk.content)
                         child_chunk.updated_by = current_user.id
-                        child_chunk.updated_at = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+                        child_chunk.updated_at = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
                         child_chunk.type = "customized"
                         update_child_chunks.append(child_chunk)
             else:
@@ -2298,7 +2299,7 @@ class SegmentService:
             child_chunk.content = content
             child_chunk.word_count = len(content)
             child_chunk.updated_by = current_user.id
-            child_chunk.updated_at = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+            child_chunk.updated_at = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
             child_chunk.type = "customized"
             db.session.add(child_chunk)
             VectorService.update_child_chunk_vector([], [child_chunk], [], dataset)

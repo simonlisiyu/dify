@@ -1,7 +1,8 @@
-import requests
 import json
-import jsonschema
 from configparser import ConfigParser
+
+import jsonschema
+import requests
 
 # 读取配置文件
 config = ConfigParser()
@@ -93,6 +94,7 @@ get_tree_response_schema = {
     }
 }
 
+
 def validate_response(response_json):
     """校验返回的JSON数据是否符合预定义的Schema"""
     try:
@@ -100,6 +102,7 @@ def validate_response(response_json):
         print("Response JSON format is valid.")
     except jsonschema.exceptions.ValidationError as err:
         print(f"Response JSON format is invalid: {err}")
+
 
 def send_post_request(payload):
     """发送POST请求并返回响应"""
@@ -111,6 +114,7 @@ def send_post_request(payload):
         print(f"Request failed, status code: {response.status_code}")
         return None
 
+
 def send_get_request(params):
     """发送GET请求并返回响应"""
     response = requests.get(BASE_URL + ENDPOINT, headers=headers, params=params)
@@ -120,6 +124,7 @@ def send_get_request(params):
     else:
         print(f"Request failed, status code: {response.status_code}")
         return None
+
 
 def test_api():
     """测试API并校验返回数据格式"""
@@ -135,6 +140,7 @@ def test_api():
     response_json = send_get_request(params)
     if response_json:
         validate_response(response_json, get_tree_response_schema)
+
 
 if __name__ == "__main__":
     test_api()

@@ -9,10 +9,10 @@ from .enterprise import EnterpriseFeatureConfig
 from .extra import ExtraServiceConfig
 from .feature import FeatureConfig
 from .middleware import MiddlewareConfig
+from .opends import OpendsConfig
 from .packaging import PackagingInfo
 from .remote_settings_sources import RemoteSettingsSource, RemoteSettingsSourceConfig, RemoteSettingsSourceName
 from .remote_settings_sources.apollo import ApolloSettingsSource
-from .opends import OpendsConfig
 
 logger = logging.getLogger(__name__)
 

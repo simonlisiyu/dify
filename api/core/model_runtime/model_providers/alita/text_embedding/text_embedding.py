@@ -1,6 +1,6 @@
+import logging
 import time
 from json import JSONDecodeError, dumps
-import logging
 from typing import Optional
 
 from requests import post
@@ -20,7 +20,6 @@ from core.model_runtime.errors.invoke import (
 )
 from core.model_runtime.errors.validate import CredentialsValidateFailedError
 from core.model_runtime.model_providers.__base.text_embedding_model import TextEmbeddingModel
-
 
 logger = logging.getLogger(__name__)
 

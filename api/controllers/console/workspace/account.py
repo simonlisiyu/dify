@@ -5,6 +5,9 @@ from flask import request
 from flask_login import current_user  # type: ignore
 from flask_restful import Resource, fields, marshal_with, reqparse  # type: ignore
 
+# [Starry] directory user
+from werkzeug.exceptions import Forbidden
+
 from configs import dify_config
 from constants.languages import supported_language
 from controllers.console import api
@@ -13,7 +16,6 @@ from controllers.console.workspace.error import (
     CurrentPasswordIncorrectError,
     InvalidAccountDeletionCodeError,
     InvalidInvitationCodeError,
-    RepeatPasswordNotMatchError,
 )
 from controllers.console.wraps import account_initialization_required, enterprise_license_required, setup_required
 from extensions.ext_database import db
@@ -24,8 +26,6 @@ from models import AccountIntegrate, InvitationCode
 from services.account_service import AccountService, RegisterService
 from services.billing_service import BillingService
 from services.errors.account import CurrentPasswordIncorrectError as ServiceCurrentPasswordIncorrectError
-# [Starry] directory user
-from werkzeug.exceptions import Forbidden
 
 
 # [Starry] directory user

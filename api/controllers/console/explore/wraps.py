@@ -1,3 +1,5 @@
+# [Starry] directory app
+import logging
 from functools import wraps
 
 from flask_login import current_user  # type: ignore
@@ -7,9 +9,7 @@ from werkzeug.exceptions import NotFound
 from controllers.console.wraps import account_initialization_required
 from extensions.ext_database import db
 from libs.login import login_required
-from models import InstalledApp, App
-# [Starry] directory app
-import logging
+from models import App, InstalledApp
 
 
 def installed_app_required(view=None):

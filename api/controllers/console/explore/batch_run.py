@@ -1,10 +1,11 @@
-import logging
 import json
+import logging
 
-from flask_restful import reqparse, Resource, marshal_with
-from flask_restful.inputs import int_range # type: ignore
+from flask_restful import Resource, marshal_with, reqparse
+from flask_restful.inputs import int_range  # type: ignore
 from werkzeug.exceptions import InternalServerError
 
+from configs import dify_config
 from controllers.console.app.error import (
     CompletionRequestError,
     ProviderModelCurrentlyNotSupportError,
@@ -13,27 +14,23 @@ from controllers.console.app.error import (
 )
 from controllers.console.explore.error import NotWorkflowAppError
 from controllers.console.explore.wraps import InstalledAppResource
+from controllers.console.wraps import account_initialization_required
 from core.app.entities.app_invoke_entities import InvokeFrom
 from core.errors.error import (
     ModelCurrentlyNotSupportError,
     ProviderTokenNotInitError,
     QuotaExceededError,
 )
-from controllers.console.wraps import account_initialization_required
 from core.model_runtime.errors.invoke import InvokeError
-from extensions.ext_database import db
-from libs import helper
-from libs.login import current_user
-from libs.login import login_required
-from models.model import AppMode, InstalledApp, InstalledAppBatchRunRecord, BatchRunRecordStatus
-from services.app_generate_service import AppGenerateService
-from tasks.installed_app_batch_run import installed_app_batch_run
 from core.opends.client import OpendsClient
-from configs import dify_config
-
+from extensions.ext_database import db
 from fields.installed_app_fields import batch_run_record_api_fields
-from fields.workflow_fields import workflow_fields
+from libs import helper
+from libs.login import current_user, login_required
+from models.model import AppMode, BatchRunRecordStatus, InstalledApp, InstalledAppBatchRunRecord
+from services.app_generate_service import AppGenerateService
 from services.workflow_service import WorkflowService
+from tasks.installed_app_batch_run import installed_app_batch_run
 
 logger = logging.getLogger(__name__)
 
@@ -269,8 +266,8 @@ class InstalledAppBatchRunOutputApi(InstalledAppResource):
         for node in workflow.graph_dict["nodes"]:
             for variable in node["data"].get("variables", []):
                 if "type" in variable and variable["type"] != "":
-                    if "text-input" == variable["type"] \
-                            or "paragraph" == variable["type"] or "select" == variable["type"]:
+                    if variable["type"] == "text-input" \
+                            or variable["type"] == "paragraph" or variable["type"] == "select":
                         node_dict["%s_%s" % (node["id"], variable["variable"])] = "string"
                     else:
                         node_dict["%s_%s" % (node["id"], variable["variable"])] = variable["type"]

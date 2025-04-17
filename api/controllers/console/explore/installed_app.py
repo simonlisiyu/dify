@@ -1,7 +1,10 @@
+import logging
+
+# [Starry] directory installed app
+import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from flask import request
 from flask_login import current_user  # type: ignore
 from flask_restful import Resource, inputs, marshal_with, reqparse  # type: ignore
 from sqlalchemy import and_
@@ -11,18 +14,16 @@ from controllers.console import api
 from controllers.console.explore.wraps import InstalledAppResource
 from controllers.console.wraps import account_initialization_required, cloud_edition_billing_resource_check
 from extensions.ext_database import db
+
 # [Starry] directory installed app
 # from fields.installed_app_fields import installed_app_list_fields
 from fields.installed_app_fields import installed_app_pagination_fields
 from libs.login import login_required
 from models import App, InstalledApp, RecommendedApp
+from models.model import Tag, TagBinding
 from services.account_service import TenantService
-# [Starry] directory installed app
-import uuid
-import logging
 from services.app_service import AppService
 from services.installed_app_service import InstalledAppService
-from models.model import Tag, TagBinding
 
 
 class InstalledAppsListApi(Resource):
@@ -33,6 +34,7 @@ class InstalledAppsListApi(Resource):
         # [Starry] directory installed app
         # app_id = request.args.get("app_id", default=None, type=str)
         current_tenant_id = current_user.current_tenant_id
+
         def uuid_list(value):
             try:
                 return [str(uuid.UUID(v)) for v in value.split(',')]
@@ -78,7 +80,7 @@ class InstalledAppsListApi(Resource):
                 Tag.tenant_id == tenant_id,
                 Tag.type == 'app'
             ).all()
-            return app_tags if app_tags else []
+            return app_tags or []
 
         current_user.role = TenantService.get_user_role(current_user, current_user.current_tenant)
         installed_app_list: list[dict[str, Any]] = [

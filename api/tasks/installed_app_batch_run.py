@@ -2,18 +2,24 @@ import datetime
 import json
 import logging
 import traceback
-
 from collections.abc import Mapping
 from typing import Any
+
 from celery import shared_task  # type: ignore
-from models.model import Account, App, AppMode, EndUser, BatchRunRecordStatus
-from core.app.entities.app_invoke_entities import InvokeFrom
-from werkzeug.exceptions import InternalServerError
-from core.opends.client import OpendsClient
-from services.app_generate_service import AppGenerateService
+
 from configs import dify_config
+from core.app.entities.app_invoke_entities import InvokeFrom
+from core.opends.client import OpendsClient
 from extensions.ext_database import db
-from models.model import InstalledAppBatchRun, InstalledAppBatchRunRecord
+from models.model import (
+    Account,
+    App,
+    AppMode,
+    BatchRunRecordStatus,
+    InstalledAppBatchRun,
+    InstalledAppBatchRunRecord,
+)
+from services.app_generate_service import AppGenerateService
 
 
 # @shared_task(queue="dataset1")

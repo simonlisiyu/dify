@@ -22,9 +22,10 @@ from core.tools.utils.configuration import ToolConfigurationManager
 from core.tools.utils.parser import ApiBasedToolSchemaParser
 from extensions.ext_database import db
 from models.tools import ApiToolProvider
-from services.tools.tools_transform_service import ToolTransformService
+
 # [Starry] directory tool
 from services.directory_service import DirectoryService
+from services.tools.tools_transform_service import ToolTransformService
 
 logger = logging.getLogger(__name__)
 

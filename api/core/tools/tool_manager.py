@@ -29,9 +29,10 @@ from core.tools.utils.configuration import ToolConfigurationManager, ToolParamet
 from core.workflow.nodes.tool.entities import ToolEntity
 from extensions.ext_database import db
 from models.tools import ApiToolProvider, BuiltinToolProvider, WorkflowToolProvider
-from services.tools.tools_transform_service import ToolTransformService
+
 # [Starry] directory tool
 from services.directory_service import DirectoryService
+from services.tools.tools_transform_service import ToolTransformService
 
 BUILTIN_TOOL_LIST = ['time', 'maths', 'webscraper', 'json_process', 'code', 'chart', 'dingtalk', 'wecom', 'gitlab',
                      'qrcode', 'regex', 'audio']

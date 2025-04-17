@@ -2,11 +2,13 @@
 
 import logging
 import secrets
+
 import jwt
 from flask import request
 from flask_restful import Resource, reqparse
-from services.account_service import AccountService, RegisterService
+
 from constants.languages import languages
+from services.account_service import AccountService, RegisterService
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +49,7 @@ class SSOLoginApi(Resource):
                     tenant_id=tenant_id,
                     name=username,
                     password=random_password,
-                    role=role if role else 'normal',
+                    role=role or 'normal',
                     language=languages[0]  # 默认使用第一个支持的语言
                 )
 
@@ -71,6 +73,7 @@ class SSOLoginApi(Resource):
         except Exception as e:
             logger.error(f"SSO login failed for user {username}: {str(e)}")
             return {"error": str(e)}, 500
+
 
 def validate_token(authorization, client_secret, client_dict):
     """验证服务间token的函数，与outer_services.py中相同"""

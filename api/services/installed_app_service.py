@@ -3,17 +3,18 @@
 # date 2024/8/21
 
 import logging
-from typing import List
+from collections import Counter, defaultdict
+
 from flask_login import current_user
 from flask_sqlalchemy.pagination import Pagination
-from models.model import App, InstalledApp, InstalledAppFavourite, Conversation, Message
-from models.workflow import WorkflowAppLog
+
 from extensions.ext_database import db
-from collections import Counter, defaultdict
+from models.model import App, Conversation, InstalledApp, InstalledAppFavourite, Message
+from models.workflow import WorkflowAppLog
 
 
 class InstalledAppService:
-    def get_paginate_installed_apps(self, apps: List[App], args: dict) -> Pagination | None:
+    def get_paginate_installed_apps(self, apps: list[App], args: dict) -> Pagination | None:
         """
         Get app list with pagination
         :param tenant_id: tenant id or account id
@@ -77,7 +78,6 @@ class InstalledAppService:
             ]
             messages = db.session.query(WorkflowAppLog).filter(*workflow_message_filters).all()
             message_counter = Counter(msg.app_id for msg in messages)
-
 
         # 遍历: add mode, replace is_pinned&favourite, count conversation&account
         for installed_app in installed_apps.items:

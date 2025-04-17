@@ -2,7 +2,6 @@
 # date 2024/11/30
 
 import jwt
-import requests
 
 # Define the client tokens dictionary
 client_tokens = {"haizhi": "haizhi", "client2": "zzz"}
@@ -27,8 +26,8 @@ if token_type.lower() == 'bearer':
             else:
                 print(f"client_id={client_id} failed")
         else:
-            print(f"client_id is not exist.")
+            print("client_id is not exist.")
     except jwt.InvalidTokenError:
-        print(f"jwt.decode failed.")
+        print("jwt.decode failed.")
 else:
-    print(f"token type is not Bearer.")
+    print("token type is not Bearer.")

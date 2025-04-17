@@ -1,7 +1,7 @@
 import json
 import logging
 from datetime import UTC, datetime
-from typing import Optional, cast, List
+from typing import Optional, cast
 
 from flask_login import current_user  # type: ignore
 from flask_sqlalchemy.pagination import Pagination
@@ -21,10 +21,11 @@ from extensions.ext_database import db
 from models.account import Account
 from models.model import App, AppMode, AppModelConfig, InstalledApp
 from models.tools import ApiToolProvider
-from services.tag_service import TagService
-from tasks.remove_app_and_related_data_task import remove_app_and_related_data_task
+
 # [Starry] directory app
 from services.directory_service import DirectoryService
+from services.tag_service import TagService
+from tasks.remove_app_and_related_data_task import remove_app_and_related_data_task
 
 
 class AppService:
@@ -253,7 +254,7 @@ class AppService:
         return app
 
     # [Starry] directory installed app
-    def get_apps(self, tenant_id: str, args: dict) -> List[App] | None:
+    def get_apps(self, tenant_id: str, args: dict) -> list[App] | None:
         """
         Get app list
         :param tenant_id: tenant id

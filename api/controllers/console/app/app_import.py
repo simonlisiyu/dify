@@ -1,3 +1,5 @@
+# [Starry] directory app
+import logging
 from typing import cast
 
 from flask_login import current_user  # type: ignore
@@ -14,8 +16,6 @@ from fields.app_fields import app_import_fields
 from libs.login import login_required
 from models import Account
 from services.app_dsl_service import AppDslService, ImportStatus
-# [Starry] directory app
-import logging
 from services.directory_service import DirectoryService
 
 logger = logging.getLogger(__name__)

@@ -13,13 +13,13 @@ from core.tools.errors import ToolNotFoundError, ToolProviderCredentialValidatio
 from core.tools.provider.builtin._positions import BuiltinToolProviderSort
 from core.tools.provider.tool_provider import ToolProviderController
 from core.tools.tool_label_manager import ToolLabelManager
-from core.tools.tool_manager import ToolManager
+
+# [Starry] directory tool
+from core.tools.tool_manager import BUILTIN_TOOL_LIST, ToolManager
 from core.tools.utils.configuration import ToolConfigurationManager
 from extensions.ext_database import db
 from models.tools import BuiltinToolProvider
 from services.tools.tools_transform_service import ToolTransformService
-# [Starry] directory tool
-from core.tools.tool_manager import ToolManager, BUILTIN_TOOL_LIST
 
 logger = logging.getLogger(__name__)
 

@@ -1,12 +1,14 @@
 import logging
 
-from flask_restful import reqparse  # type: ignore
-from core.opends.client import OpendsClient
+from flask_restful import (
+    Resource,
+    reqparse,  # type: ignore
+)
+
 from controllers.console import api
 from controllers.console.wraps import account_initialization_required
-from flask_restful import Resource
+from core.opends.client import OpendsClient
 from libs.login import login_required
-
 
 logger = logging.getLogger(__name__)
 

@@ -204,6 +204,7 @@ def compact_generate_response(
 
         return Response(stream_with_context(generate()), status=200, mimetype="text/event-stream")
 
+
 def compact_generate_responses(
     responses: Union[Mapping[str, Any], RateLimitGenerator, Generator[str, None, None]],
 ) -> Response:

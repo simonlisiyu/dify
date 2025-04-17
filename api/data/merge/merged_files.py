@@ -1,5 +1,4 @@
 # 导入必要的库
-import os
 
 # 要合并的txt文件列表
 txt_files = ['scu_stopwords.txt', 'hit_stopwords.txt', 'cn_stopwords.txt', 'baidu_stopwords.txt']
@@ -9,7 +8,7 @@ merged_lines = set()
 
 # 读取每个txt文件的内容，并去重后添加到集合中
 for file in txt_files:
-    with open(file, 'r') as f:
+    with open(file) as f:
         lines = f.readlines()
         merged_lines.update(lines)
 
