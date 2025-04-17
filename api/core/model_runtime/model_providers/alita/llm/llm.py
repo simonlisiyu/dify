@@ -273,7 +273,7 @@ class AlitaLanguageModel(LargeLanguageModel):
         completion_type = credentials['completion_type']
 
         extra_model_kwargs = {
-            "timeout": 60,
+            "timeout": 600,
         }
         if stop:
             extra_model_kwargs['stop'] = stop
@@ -660,6 +660,8 @@ class AlitaLanguageModel(LargeLanguageModel):
                     full_response += delta.delta.reasoning_content
             else:
                 # logging.info(f"content={delta.delta.content},{is_reasoning}")
+                if delta.delta.content is None or delta.delta.content == '':
+                    continue
                 if is_reasoning:
                     c_content = "</details>" + (delta.delta.content or '')
                 else:
