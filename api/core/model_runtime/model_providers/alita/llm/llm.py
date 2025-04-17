@@ -1,3 +1,4 @@
+# import logging
 from collections.abc import Generator
 from typing import cast
 
@@ -288,7 +289,7 @@ class AlitaLanguageModel(LargeLanguageModel):
         default_values = {
             'temperature': 0.7,  # 默认温度
             'top_p': 1.0,  # 默认 top_p 值
-            'max_tokens': 2048,  # 默认最大生成 token 数量
+            'max_tokens': 4096,  # 默认最大生成 token 数量
         }
         for key, default_value in default_values.items():
             if key not in model_parameters:
@@ -299,6 +300,7 @@ class AlitaLanguageModel(LargeLanguageModel):
         api_key = credentials.get("api_key", "1")
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
+
         if completion_type == 'chat_completion':
             # logging.info("Prompt messages: %s", [self._convert_prompt_message_to_dict(m) for m in prompt_messages])
             # logging.info("Model name: %s", model_name)
@@ -368,6 +370,19 @@ class AlitaLanguageModel(LargeLanguageModel):
         """
         Convert PromptMessage to dict for OpenAI Compatibility API
         """
+        import re
+        from collections.abc import Sequence
+        if isinstance(message.content, str):  # 确保 content 是字符串
+            # logging.info(f"message.content is str, {message.content}")
+            message.content = re.sub(r"\s+", " ", message.content)
+            message.content = re.sub(r"<details.*?</details>", "", message.content, flags=re.DOTALL)
+            # logging.info(f"message.content is str, {message.content}")
+        elif isinstance(message.content, Sequence):  # 如果是序列
+            # 处理序列中的每个元素
+            for item in message.content:
+                if hasattr(item, "content") and isinstance(item.content, str):
+                    item.content = re.sub(r"<details.*?</details>", "", item.content)
+
         if isinstance(message, UserPromptMessage):
             message = cast(UserPromptMessage, message)
             if isinstance(message.content, str):
