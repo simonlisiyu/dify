@@ -158,6 +158,8 @@ def installed_app_batch_run(args: Mapping[str, Any], app_id: str, current_user: 
                         # response = helper.compact_generate_response(response)
                         # response_list = response.data.decode().strip("\n\n").split("\n\n")
                         for response_info in response_list:
+                            if "event: ping" in response_info:
+                                continue
                             response_info = json.loads(response_info.replace("data: ", ""))
                             if response_info["event"] == "node_finished" and response_info["data"]["node_type"] == "end" \
                                     and response_info["data"]["outputs"] is not None:
