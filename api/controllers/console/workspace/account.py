@@ -18,6 +18,7 @@ from controllers.console.workspace.error import (
     InvalidInvitationCodeError,
 )
 from controllers.console.wraps import account_initialization_required, enterprise_license_required, setup_required
+from core.opends.client import OpendsClient
 from extensions.ext_database import db
 from fields.member_fields import account_fields
 from libs.helper import TimestampField, timezone
@@ -38,6 +39,8 @@ class AccountApi(Resource):
         parser.add_argument('name', type=str, required=True, location='json')
         parser.add_argument('password', type=str, required=True, location='json')
         parser.add_argument('role', type=str, required=True, location='json')
+        parser.add_argument('dmc_user_id', type=str, required=False, default="", location='json')
+        parser.add_argument('dmc_user_name', type=str, required=False, default="", location='json')
         args = parser.parse_args()
 
         # Validate account name length
@@ -56,6 +59,13 @@ class AccountApi(Resource):
                                                    password=args['password'],
                                                    role=args['role']
                                                    )
+            if args['dmc_user_id'] and args['dmc_user_name']:
+                new_account.dmc_user_id = args['dmc_user_id']
+                new_account.dmc_user_name = args['dmc_user_name']
+            else:
+                new_account.dmc_user_id = ""
+                new_account.dmc_user_name = ""
+            db.session.commit()
         except Exception as e:
             raise Forbidden("change failed, please change another name. ")
 
@@ -132,6 +142,8 @@ class AccountNameApi(Resource):
         # [Starry] directory user
         parser.add_argument('account_id', type=str, required=True, location='json')
         parser.add_argument("name", type=str, required=True, location="json")
+        parser.add_argument('dmc_user_id', type=str, required=False, default="", location='json')
+        parser.add_argument('dmc_user_name', type=str, required=False, default="", location='json')
         args = parser.parse_args()
 
         # Validate account name length
@@ -141,7 +153,9 @@ class AccountNameApi(Resource):
         # [Starry] directory user
         # updated_account = AccountService.update_account(current_user, name=args["name"])
         try:
-            updated_account = AccountService.update_account(args['account_id'], name=args['name'])
+            updated_account = AccountService.update_account(args['account_id'], name=args['name'],
+                                                            dmc_user_id=args['dmc_user_id'],
+                                                            dmc_user_name=args['dmc_user_name'])
         except Exception as e:
             raise Forbidden("change failed, please change another name.")
 
@@ -365,6 +379,23 @@ class AccountManageApi(Resource):
 
         return {"result": "success"}
 
+class AccountDmcUserListApi(Resource):
+    @setup_required
+    @login_required
+    @account_initialization_required
+    def post(self):
+        opendsClient = OpendsClient()
+        result = []
+        opends_result = opendsClient.user_list_v2()
+        for user in opends_result:
+            if user["is_frozen"] == 0:
+                result.append({
+                    "dmc_user_id": user["user_id"],
+                    "dmc_user_name": user["username"],
+                    "dmc_user_name_cn": user["name"]
+                })
+        return {"result": result}
+
 
 # Register API resources
 api.add_resource(AccountInitApi, "/account/init")
@@ -382,5 +413,6 @@ api.add_resource(AccountDeleteUpdateFeedbackApi, "/account/delete/feedback")
 # [Starry] directory user
 api.add_resource(AccountApi, '/account')
 api.add_resource(AccountManageApi, '/account/<uuid:account_id>')
+api.add_resource(AccountDmcUserListApi, '/account/dmc/user/list')
 # api.add_resource(AccountEmailApi, '/account/email')
 # api.add_resource(AccountEmailVerifyApi, '/account/email-verify')

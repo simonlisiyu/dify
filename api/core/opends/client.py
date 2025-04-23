@@ -90,3 +90,8 @@ class OpendsClient:
         params = {"tb_ids": json.dumps(tb_ids)}
         response = self._send_request("POST", "/api/tb/update", json=None, params=params)
         return response["result"]
+
+    def user_list_v2(self):
+        params = {"limit": 10000}
+        response = self._send_request("POST", "/api/v2/user/list", json=None, params=params)
+        return response["result"]
