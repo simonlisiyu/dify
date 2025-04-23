@@ -77,12 +77,12 @@ class AccountApi(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument("account_id", type=str, required=True, location="args")
         args = parser.parse_args()
-        account = db.session.query(Account).filter(Account.account_id == args["account_id"]).one_or_none()
+        account = db.session.query(Account).filter(Account.id == args["account_id"]).one_or_none()
         if not account:
             raise AccountNotFoundError()
-        return {"account_id": account.account_id,
-                "dmc_user_id": account.dmc_user_id,
-                "dmc_user_name": account.dmc_user_name,
+        return {"account_id": account.id,
+                "dmc_user_id": account.get_dmc_user_id,
+                "dmc_user_name": account.get_dmc_user_name,
                 "tassadar_url ": dify_config.TASSADAR_URL,
                 "hora_url": dify_config.HORA_URL
                 }
