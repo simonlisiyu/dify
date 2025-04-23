@@ -68,7 +68,7 @@ class LocalAITextEmbeddingModel(TextEmbeddingModel):
             server_url_standard = credentials.get('server_url_standard', 'standard')
             is_standard = server_url_standard.lower() == 'standard'
             if is_standard:
-                full_url = str(URL(url) / 'rerank')
+                full_url = str(URL(url) / 'embeddings')
             else:
                 full_url = str(URL(url))
             response = post(full_url, headers=headers, data=dumps(data), timeout=10)

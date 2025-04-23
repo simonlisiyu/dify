@@ -105,45 +105,48 @@ class DatasetService:
         # if account_id is not None:
         #     query = query.filter(Dataset.created_by == account_id)
 
-        if user:
-            # get permitted dataset ids
-            dataset_permission = DatasetPermission.query.filter_by(account_id=user.id, tenant_id=tenant_id).all()
-            permitted_dataset_ids = {dp.dataset_id for dp in dataset_permission} if dataset_permission else None
+        # [Starry] dataset admin no permission
+        logging.info(f"current_user.is_admin_or_owner={current_user.is_admin_or_owner}")
+        if not current_user.is_admin_or_owner:
+            if user:
+                # get permitted dataset ids
+                dataset_permission = DatasetPermission.query.filter_by(account_id=user.id, tenant_id=tenant_id).all()
+                permitted_dataset_ids = {dp.dataset_id for dp in dataset_permission} if dataset_permission else None
 
-            if user.current_role == TenantAccountRole.DATASET_OPERATOR:
-                # only show datasets that the user has permission to access
-                if permitted_dataset_ids:
-                    query = query.filter(Dataset.id.in_(permitted_dataset_ids))
-                else:
-                    return [], 0
-            else:
-                if user.current_role != TenantAccountRole.OWNER or not include_all:
-                    # show all datasets that the user has permission to access
+                if user.current_role == TenantAccountRole.DATASET_OPERATOR:
+                    # only show datasets that the user has permission to access
                     if permitted_dataset_ids:
-                        query = query.filter(
-                            db.or_(
-                                Dataset.permission == DatasetPermissionEnum.ALL_TEAM,
-                                db.and_(
-                                    Dataset.permission == DatasetPermissionEnum.ONLY_ME, Dataset.created_by == user.id
-                                ),
-                                db.and_(
-                                    Dataset.permission == DatasetPermissionEnum.PARTIAL_TEAM,
-                                    Dataset.id.in_(permitted_dataset_ids),
-                                ),
-                            )
-                        )
+                        query = query.filter(Dataset.id.in_(permitted_dataset_ids))
                     else:
-                        query = query.filter(
-                            db.or_(
-                                Dataset.permission == DatasetPermissionEnum.ALL_TEAM,
-                                db.and_(
-                                    Dataset.permission == DatasetPermissionEnum.ONLY_ME, Dataset.created_by == user.id
-                                ),
+                        return [], 0
+                else:
+                    if user.current_role != TenantAccountRole.OWNER or not include_all:
+                        # show all datasets that the user has permission to access
+                        if permitted_dataset_ids:
+                            query = query.filter(
+                                db.or_(
+                                    Dataset.permission == DatasetPermissionEnum.ALL_TEAM,
+                                    db.and_(
+                                        Dataset.permission == DatasetPermissionEnum.ONLY_ME, Dataset.created_by == user.id
+                                    ),
+                                    db.and_(
+                                        Dataset.permission == DatasetPermissionEnum.PARTIAL_TEAM,
+                                        Dataset.id.in_(permitted_dataset_ids),
+                                    ),
+                                )
                             )
-                        )
-        else:
-            # if no user, only show datasets that are shared with all team members
-            query = query.filter(Dataset.permission == DatasetPermissionEnum.ALL_TEAM)
+                        else:
+                            query = query.filter(
+                                db.or_(
+                                    Dataset.permission == DatasetPermissionEnum.ALL_TEAM,
+                                    db.and_(
+                                        Dataset.permission == DatasetPermissionEnum.ONLY_ME, Dataset.created_by == user.id
+                                    ),
+                                )
+                            )
+            else:
+                # if no user, only show datasets that are shared with all team members
+                query = query.filter(Dataset.permission == DatasetPermissionEnum.ALL_TEAM)
 
         if search:
             query = query.filter(Dataset.name.ilike(f"%{search}%"))
