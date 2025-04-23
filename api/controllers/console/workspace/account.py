@@ -16,6 +16,7 @@ from controllers.console.workspace.error import (
     CurrentPasswordIncorrectError,
     InvalidAccountDeletionCodeError,
     InvalidInvitationCodeError,
+    AccountNotFoundError
 )
 from controllers.console.wraps import account_initialization_required, enterprise_license_required, setup_required
 from core.opends.client import OpendsClient
@@ -23,7 +24,8 @@ from extensions.ext_database import db
 from fields.member_fields import account_fields
 from libs.helper import TimestampField, timezone
 from libs.login import login_required
-from models import AccountIntegrate, InvitationCode
+
+from models import AccountIntegrate, InvitationCode, Account
 from services.account_service import AccountService, RegisterService
 from services.billing_service import BillingService
 from services.errors.account import CurrentPasswordIncorrectError as ServiceCurrentPasswordIncorrectError
@@ -70,6 +72,21 @@ class AccountApi(Resource):
             raise Forbidden("change failed, please change another name. ")
 
         return new_account
+
+    def get(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument("account_id", type=str, required=True, location="args")
+        args = parser.parse_args()
+        account = db.session.query(Account).filter(Account.account_id == args["account_id"]).one_or_none()
+        if not account:
+            raise AccountNotFoundError()
+        return {"account_id": account.account_id,
+                "dmc_user_id": account.dmc_user_id,
+                "dmc_user_name": account.dmc_user_name,
+                "tassadar_url": dify_config.TASSADAR_URL,
+                "hora_url": dify_config.HORA_URL
+                }
+
 
 
 class AccountInitApi(Resource):
