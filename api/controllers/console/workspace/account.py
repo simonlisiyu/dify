@@ -77,8 +77,9 @@ class AccountApi(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument("account_id", type=str, required=True, location="args")
         args = parser.parse_args()
-        account = db.session.query(Account).filter(Account.id == args["account_id"]).one_or_none()
-        if not account:
+        try:
+            account = db.session.query(Account).filter(Account.id == args["account_id"]).one_or_none()
+        except Exception:
             raise AccountNotFoundError()
         return {"account_id": account.id,
                 "dmc_user_id": account.get_dmc_user_id,
@@ -86,7 +87,6 @@ class AccountApi(Resource):
                 "tassadar_url ": dify_config.TASSADAR_URL,
                 "hora_url": dify_config.HORA_URL
                 }
-
 
 
 class AccountInitApi(Resource):
@@ -395,6 +395,7 @@ class AccountManageApi(Resource):
         AccountService.change_account_status(account_id, args['status'])
 
         return {"result": "success"}
+
 
 class AccountDmcUserListApi(Resource):
     @setup_required
