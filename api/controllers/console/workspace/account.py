@@ -83,7 +83,7 @@ class AccountApi(Resource):
         return {"account_id": account.account_id,
                 "dmc_user_id": account.dmc_user_id,
                 "dmc_user_name": account.dmc_user_name,
-                "tassadar_url": dify_config.TASSADAR_URL,
+                "tassadar_url ": dify_config.TASSADAR_URL,
                 "hora_url": dify_config.HORA_URL
                 }
 
