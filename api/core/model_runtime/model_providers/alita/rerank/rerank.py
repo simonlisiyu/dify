@@ -60,6 +60,8 @@ class AlitaRerankModel(RerankModel):
             'Content-Type': 'application/json'
         }
 
+        if isinstance(query, list):
+            query = ''.join(query)
         data = {
             "model": model_name,
             "query": query,
