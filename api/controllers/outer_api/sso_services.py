@@ -60,7 +60,7 @@ class SSOLoginApi(Resource):
             )
 
             # 构建跳转URL（添加token到URL参数）
-            redirect_url = f"{request.host_url}console?token={token_pair.access_token}"
+            redirect_url = f"/home/welcome?token={token_pair.access_token}"
 
             return {
                 "result": "success",
