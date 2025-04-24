@@ -8,6 +8,7 @@ from typing import Any, Optional, Union
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from configs import dify_config
 from constants.tts_auto_play_timeout import TTS_AUTO_PLAY_TIMEOUT, TTS_AUTO_PLAY_YIELD_CPU_TIME
 from core.app.apps.advanced_chat.app_generator_tts_publisher import AppGeneratorTTSPublisher, AudioTrunk
 from core.app.apps.base_app_queue_manager import AppQueueManager, PublishFrom
@@ -106,6 +107,10 @@ class AdvancedChatAppGenerateTaskPipeline:
         else:
             raise NotImplementedError(f"User type not supported: {type(user)}")
 
+        dmc_hora_url = dify_config.HORA_URL
+        dmc_tassadar_url = dify_config.TASSADAR_URL
+        account = db.session.query(Account).filter(Account.id == user_session_id).one_or_none()
+        dmc_user_id = account.dmc_user_id if account else None
         self._workflow_cycle_manager = WorkflowCycleManage(
             application_generate_entity=application_generate_entity,
             workflow_system_variables={
@@ -113,6 +118,9 @@ class AdvancedChatAppGenerateTaskPipeline:
                 SystemVariableKey.FILES: application_generate_entity.files,
                 SystemVariableKey.CONVERSATION_ID: conversation.id,
                 SystemVariableKey.USER_ID: user_session_id,
+                SystemVariableKey.DMC_USER_ID: dmc_user_id,
+                SystemVariableKey.DMC_HORA_URL: dmc_hora_url,
+                SystemVariableKey.DMC_TASSADAR_URL: dmc_tassadar_url,
                 SystemVariableKey.DIALOGUE_COUNT: dialogue_count,
                 SystemVariableKey.APP_ID: application_generate_entity.app_config.app_id,
                 SystemVariableKey.WORKFLOW_ID: workflow.id,

@@ -5,7 +5,7 @@ from typing import Any, cast
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from configs import dify_config
+from configs import dify_config, DifyConfig
 from core.app.apps.advanced_chat.app_config_manager import AdvancedChatAppConfig
 from core.app.apps.base_app_queue_manager import AppQueueManager
 from core.app.apps.workflow_app_runner import WorkflowBasedAppRunner
@@ -21,6 +21,7 @@ from core.workflow.entities.variable_pool import VariablePool
 from core.workflow.enums import SystemVariableKey
 from core.workflow.workflow_entry import WorkflowEntry
 from extensions.ext_database import db
+from models import Account
 from models.enums import UserFrom
 from models.model import App, Conversation, EndUser, Message
 from models.workflow import ConversationVariable, WorkflowType
@@ -125,11 +126,19 @@ class AdvancedChatAppRunner(WorkflowBasedAppRunner):
                 session.commit()
 
             # Create a variable pool.
+            dmc_hora_url = dify_config.HORA_URL
+            dmc_tassadar_url = dify_config.TASSADAR_URL
+            account = db.session.query(Account).filter(Account.id == user_id).one_or_none()
+            dmc_user_id = account.dmc_user_id if account else None
+
             system_inputs = {
                 SystemVariableKey.QUERY: query,
                 SystemVariableKey.FILES: files,
                 SystemVariableKey.CONVERSATION_ID: self.conversation.id,
                 SystemVariableKey.USER_ID: user_id,
+                SystemVariableKey.DMC_USER_ID: dmc_user_id,
+                SystemVariableKey.DMC_HORA_URL: dmc_hora_url,
+                SystemVariableKey.DMC_TASSADAR_URL: dmc_tassadar_url,
                 SystemVariableKey.DIALOGUE_COUNT: self._dialogue_count,
                 SystemVariableKey.APP_ID: app_config.app_id,
                 SystemVariableKey.WORKFLOW_ID: app_config.workflow_id,

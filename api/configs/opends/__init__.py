@@ -36,3 +36,11 @@ class OpendsConfig(BaseSettings):
         description="dmc的访问地址",
         default="https://dmc.haizhi.com",
     )
+    TASSADAR_URL: str = Field(
+        description="tassadar访问url",
+        default="http://192.168.1.167:19988",
+    )
+    HORA_URL: str = Field(
+        description="hora访问url",
+        default="http://192.168.1.167:11729",
+    )
