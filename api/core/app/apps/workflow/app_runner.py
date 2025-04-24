@@ -88,8 +88,12 @@ class WorkflowAppRunner(WorkflowBasedAppRunner):
 
             dmc_hora_url = dify_config.HORA_URL
             dmc_tassadar_url = dify_config.TASSADAR_URL
-            account = db.session.query(Account).filter(Account.id == user_id).one_or_none()
-            dmc_user_id = account.dmc_user_id if account else None
+            try:
+                account = db.session.query(Account).filter(Account.id == user_id).one_or_none()
+                dmc_user_id = account.dmc_user_id if account else None
+            except Exception as e:
+                dmc_user_id = None
+                logger.error(f"Failed to get account by id {user_id}")
 
             # Create a variable pool.
             system_inputs = {

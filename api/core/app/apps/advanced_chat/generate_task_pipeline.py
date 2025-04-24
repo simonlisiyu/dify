@@ -109,8 +109,12 @@ class AdvancedChatAppGenerateTaskPipeline:
 
         dmc_hora_url = dify_config.HORA_URL
         dmc_tassadar_url = dify_config.TASSADAR_URL
-        account = db.session.query(Account).filter(Account.id == user_session_id).one_or_none()
-        dmc_user_id = account.dmc_user_id if account else None
+        try:
+            account = db.session.query(Account).filter(Account.id == user_session_id).one_or_none()
+            dmc_user_id = account.dmc_user_id if account else None
+        except Exception as e:
+            dmc_user_id = None
+            logger.error(f"Failed to get account by id {user_session_id}")
         self._workflow_cycle_manager = WorkflowCycleManage(
             application_generate_entity=application_generate_entity,
             workflow_system_variables={
