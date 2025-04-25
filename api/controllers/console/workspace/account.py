@@ -402,16 +402,18 @@ class AccountDmcUserListApi(Resource):
     @login_required
     @account_initialization_required
     def post(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('search_key', type=str, required=False, default="", location='json')
+        args = parser.parse_args()
         opendsClient = OpendsClient()
         result = []
-        opends_result = opendsClient.user_list_v2()
+        opends_result = opendsClient.user_list_v2(args['search_key'])
         for user in opends_result:
-            if user["is_frozen"] == 0:
-                result.append({
-                    "dmc_user_id": user["user_id"],
-                    "dmc_user_name": user["username"],
-                    "dmc_user_name_cn": user["name"]
-                })
+            result.append({
+                "dmc_user_id": user["user_id"],
+                "dmc_user_name": user["username"],
+                "dmc_user_name_cn": user["name"]
+            })
         return {"result": result}
 
 
