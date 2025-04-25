@@ -414,7 +414,7 @@ class AccountDmcUserListApi(Resource):
                 "dmc_user_name": user["username"],
                 "dmc_user_name_cn": user["name"]
             })
-        return {"result": result}
+        return {"result": result[0:20]}
 
 
 # Register API resources
