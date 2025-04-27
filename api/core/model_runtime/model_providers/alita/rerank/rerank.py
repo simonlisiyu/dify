@@ -70,8 +70,8 @@ class AlitaRerankModel(RerankModel):
         }
 
         try:
-            logger.info(f'url: {url}')
-            logger.info(f'data: {data}')
+            # logger.info(f'url: {url}')
+            # logger.info(f'data: {data}')
             server_url_standard = credentials.get('server_url_standard', 'standard')
             is_standard = server_url_standard.lower() == 'standard'
             if is_standard:
@@ -79,10 +79,10 @@ class AlitaRerankModel(RerankModel):
             else:
                 full_url = str(URL(url))
             response = post(full_url, headers=headers, data=dumps(data), timeout=10)
-            logger.info(f'response: {response}')
+            # logger.info(f'response: {response}')
             response.raise_for_status() 
             results = response.json()
-            logger.info(f'results: {results}')
+            # logger.info(f'results: {results}')
 
             rerank_documents = []
             for result in results['results']:  
