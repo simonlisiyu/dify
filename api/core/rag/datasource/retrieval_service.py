@@ -1,9 +1,15 @@
 import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor
+import json
+import logging
+import threading
 from typing import Optional
 
+# [Starry] directory rag
+# import jieba
 from flask import Flask, current_app
 from sqlalchemy.orm import load_only
+from sqlalchemy import or_
 
 from configs import dify_config
 from core.rag.data_post_processor.data_post_processor import DataPostProcessor
@@ -26,6 +32,31 @@ default_retrieval_model = {
     "top_k": 2,
     "score_threshold_enabled": False,
 }
+
+# [Starry] directory rag
+# logger = logging.getLogger(__name__)
+# # stop words
+# stop_words = []
+# try:
+#     with open('/app/data/stopwords.txt') as file:
+#         stop_words = file.read().splitlines()
+# except FileNotFoundError:
+#     logger.info("/app/data/stopwords.txt File not found.")
+# except OSError as e:
+#     logger.info("/app/data/stopwords.txt An error occurred while reading the file:", e)
+# # custom words
+# try:
+#     jieba.load_userdict(r"/app/data/userdict.txt")
+# except:
+#     logger.info("/app/data/userdict.txt File failed.")
+# # synonym words
+# synonym_dict = {}
+# try:
+#     for line in open("/app/data/synonym.txt", encoding='utf-8'):
+#         words = line.split(" ")
+#         synonym_dict[words[0]] = words[1]
+# except:
+#     logger.info("/app/data/synonym.txt File failed.")
 
 
 class RetrievalService:
@@ -190,10 +221,10 @@ class RetrievalService:
 
                 if documents:
                     if (
-                        reranking_model
-                        and reranking_model.get("reranking_model_name")
-                        and reranking_model.get("reranking_provider_name")
-                        and retrieval_method == RetrievalMethod.SEMANTIC_SEARCH.value
+                            reranking_model
+                            and reranking_model.get("reranking_model_name")
+                            and reranking_model.get("reranking_provider_name")
+                            and retrieval_method == RetrievalMethod.SEMANTIC_SEARCH.value
                     ):
                         data_post_processor = DataPostProcessor(
                             str(dataset.tenant_id), str(RerankMode.RERANKING_MODEL.value), reranking_model, None, False

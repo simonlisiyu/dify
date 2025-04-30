@@ -172,6 +172,8 @@ class ExternalDatasetCreateApi(Resource):
         )
         parser.add_argument("description", type=str, required=False, nullable=True, location="json")
         parser.add_argument("external_retrieval_model", type=dict, required=False, location="json")
+        # [Starry] directory dataset
+        parser.add_argument('directory_id', type=str, location='json', required=True)
 
         args = parser.parse_args()
 

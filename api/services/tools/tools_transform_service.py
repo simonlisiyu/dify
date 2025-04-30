@@ -101,6 +101,9 @@ class ToolTransformService:
             plugin_id=None,
             tools=[],
             labels=provider_controller.tool_labels,
+            directory_id='',
+            directory_name='',
+            created_at_str='',
         )
 
         if isinstance(provider_controller, PluginToolProviderController):
@@ -185,6 +188,9 @@ class ToolTransformService:
             plugin_unique_identifier=None,
             tools=[],
             labels=labels or [],
+            directory_id=provider_controller.directory_id,
+            directory_name=provider_controller.directory_name,
+            created_at_str=provider_controller.created_at_str,
         )
 
     @classmethod
@@ -231,6 +237,10 @@ class ToolTransformService:
             is_team_authorization=True,
             tools=[],
             labels=labels or [],
+            # [Starry] directory tool
+            directory_id=db_provider.directory_id,
+            directory_name=provider_controller.directory_name,
+            created_at_str=db_provider.created_at_str,
         )
 
         if decrypt_credentials:

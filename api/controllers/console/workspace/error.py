@@ -41,3 +41,8 @@ class InvalidAccountDeletionCodeError(BaseHTTPException):
     error_code = "invalid_account_deletion_code"
     description = "Invalid account deletion code."
     code = 400
+
+class AccountNotFoundError(BaseHTTPException):
+    error_code = "account_not_found_code"
+    description = "Account not found code."
+    code = 400

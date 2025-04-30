@@ -81,6 +81,11 @@ dataset_detail_fields = {
     "external_retrieval_model": fields.Nested(external_retrieval_model_fields, allow_null=True),
     "doc_metadata": fields.List(fields.Nested(doc_metadata_fields)),
     "built_in_field_enabled": fields.Boolean,
+    # [Starry] directory dataset
+    'account_name': fields.String,
+    'created_at_str': fields.String,
+    'directory_id': fields.String,
+    'directory_name': fields.String,
 }
 
 dataset_query_detail_fields = {

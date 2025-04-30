@@ -6,10 +6,10 @@ class DeploymentConfig(BaseSettings):
     """
     Configuration settings for application deployment
     """
-
+    # [Starry] directory config
     APPLICATION_NAME: str = Field(
         description="Name of the application, used for identification and logging purposes",
-        default="langgenius/dify",
+        default="haizhi/starry",
     )
 
     DEBUG: bool = Field(

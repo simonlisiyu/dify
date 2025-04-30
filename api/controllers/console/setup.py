@@ -2,7 +2,7 @@ from flask import request
 from flask_restful import Resource, reqparse  # type: ignore
 
 from configs import dify_config
-from libs.helper import StrLen, email, extract_remote_ip
+from libs.helper import StrLen, extract_remote_ip
 from libs.password import valid_password
 from models.model import DifySetup, db
 from services.account_service import RegisterService, TenantService
@@ -37,7 +37,8 @@ class SetupApi(Resource):
             raise NotInitValidateError()
 
         parser = reqparse.RequestParser()
-        parser.add_argument("email", type=email, required=True, location="json")
+        # parser.add_argument("email", type=email, required=True, location="json")
+        parser.add_argument("email", type=StrLen(30), required=True, location="json")
         parser.add_argument("name", type=StrLen(30), required=True, location="json")
         parser.add_argument("password", type=valid_password, required=True, location="json")
         args = parser.parse_args()

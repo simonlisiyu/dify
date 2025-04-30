@@ -6,9 +6,9 @@ class PackagingInfo(BaseSettings):
     """
     Packaging build information
     """
-
+    # [Starry] directory config
     CURRENT_VERSION: str = Field(
-        description="Dify version",
+        description="Starry version",
         default="1.3.1",
     )
 

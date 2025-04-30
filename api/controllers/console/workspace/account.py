@@ -5,6 +5,9 @@ from flask import request
 from flask_login import current_user  # type: ignore
 from flask_restful import Resource, fields, marshal_with, reqparse  # type: ignore
 
+# [Starry] directory user
+from werkzeug.exceptions import Forbidden
+
 from configs import dify_config
 from constants.languages import supported_language
 from controllers.console import api
@@ -13,7 +16,7 @@ from controllers.console.workspace.error import (
     CurrentPasswordIncorrectError,
     InvalidAccountDeletionCodeError,
     InvalidInvitationCodeError,
-    RepeatPasswordNotMatchError,
+    AccountNotFoundError
 )
 from controllers.console.wraps import (
     account_initialization_required,
@@ -22,14 +25,74 @@ from controllers.console.wraps import (
     only_edition_cloud,
     setup_required,
 )
+from core.opends.client import OpendsClient
 from extensions.ext_database import db
 from fields.member_fields import account_fields
 from libs.helper import TimestampField, timezone
 from libs.login import login_required
-from models import AccountIntegrate, InvitationCode
-from services.account_service import AccountService
+
+from models import AccountIntegrate, InvitationCode, Account
+from services.account_service import AccountService, RegisterService
 from services.billing_service import BillingService
 from services.errors.account import CurrentPasswordIncorrectError as ServiceCurrentPasswordIncorrectError
+
+
+# [Starry] directory user
+class AccountApi(Resource):
+    @login_required
+    @marshal_with(account_fields)
+    def post(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('email', type=str, required=True, location='json')
+        parser.add_argument('name', type=str, required=True, location='json')
+        parser.add_argument('password', type=str, required=True, location='json')
+        parser.add_argument('role', type=str, required=True, location='json')
+        parser.add_argument('dmc_user_id', type=str, required=False, default="", location='json')
+        parser.add_argument('dmc_user_name', type=str, required=False, default="", location='json')
+        args = parser.parse_args()
+
+        # Validate account name length
+        if len(args['email']) < 3 or len(args['email']) > 40:
+            raise ValueError(
+                "Account username must be between 3 and 40 characters.")
+
+        # Validate password length
+        if len(args['password']) < 8:
+            raise ValueError(
+                "Account password must be longer 8 characters.")
+
+        try:
+            new_account = RegisterService.register(email=args['email'],
+                                                   name=args['name'],
+                                                   password=args['password'],
+                                                   role=args['role']
+                                                   )
+            if args['dmc_user_id'] and args['dmc_user_name']:
+                new_account.dmc_user_id = args['dmc_user_id']
+                new_account.dmc_user_name = args['dmc_user_name']
+            else:
+                new_account.dmc_user_id = ""
+                new_account.dmc_user_name = ""
+            db.session.commit()
+        except Exception as e:
+            raise Forbidden("change failed, please change another name. ")
+
+        return new_account
+
+    def get(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument("account_id", type=str, required=True, location="args")
+        args = parser.parse_args()
+        try:
+            account = db.session.query(Account).filter(Account.id == args["account_id"]).one_or_none()
+        except Exception:
+            raise AccountNotFoundError()
+        return {"account_id": account.id,
+                "dmc_user_id": account.get_dmc_user_id,
+                "dmc_user_name": account.get_dmc_user_name,
+                "tassadar_url ": dify_config.TASSADAR_URL,
+                "hora_url": dify_config.HORA_URL
+                }
 
 
 class AccountInitApi(Resource):
@@ -99,14 +162,25 @@ class AccountNameApi(Resource):
     @marshal_with(account_fields)
     def post(self):
         parser = reqparse.RequestParser()
+        # [Starry] directory user
+        parser.add_argument('account_id', type=str, required=True, location='json')
         parser.add_argument("name", type=str, required=True, location="json")
+        parser.add_argument('dmc_user_id', type=str, required=False, default="", location='json')
+        parser.add_argument('dmc_user_name', type=str, required=False, default="", location='json')
         args = parser.parse_args()
 
         # Validate account name length
         if len(args["name"]) < 3 or len(args["name"]) > 30:
             raise ValueError("Account name must be between 3 and 30 characters.")
 
-        updated_account = AccountService.update_account(current_user, name=args["name"])
+        # [Starry] directory user
+        # updated_account = AccountService.update_account(current_user, name=args["name"])
+        try:
+            updated_account = AccountService.update_account(args['account_id'], name=args['name'],
+                                                            dmc_user_id=args['dmc_user_id'],
+                                                            dmc_user_name=args['dmc_user_name'])
+        except Exception as e:
+            raise Forbidden("change failed, please change another name.")
 
         return updated_account
 
@@ -179,19 +253,22 @@ class AccountPasswordApi(Resource):
     @setup_required
     @login_required
     @account_initialization_required
-    @marshal_with(account_fields)
+    # @marshal_with(account_fields)
     def post(self):
         parser = reqparse.RequestParser()
-        parser.add_argument("password", type=str, required=False, location="json")
-        parser.add_argument("new_password", type=str, required=True, location="json")
-        parser.add_argument("repeat_new_password", type=str, required=True, location="json")
+        # [Starry] directory user
+        parser.add_argument('account_id', type=str, required=True, location='json')
+        parser.add_argument("password", type=str, required=True, location="json")
+        # parser.add_argument("new_password", type=str, required=True, location="json")
+        # parser.add_argument("repeat_new_password", type=str, required=True, location="json")
         args = parser.parse_args()
 
-        if args["new_password"] != args["repeat_new_password"]:
-            raise RepeatPasswordNotMatchError()
+        # if args["new_password"] != args["repeat_new_password"]:
+        #     raise RepeatPasswordNotMatchError()
 
         try:
-            AccountService.update_account_password(current_user, args["password"], args["new_password"])
+            # AccountService.update_account_password(current_user, args["password"], args["new_password"])
+            AccountService.update_account_password(args['account_id'], args["password"])
         except ServiceCurrentPasswordIncorrectError:
             raise CurrentPasswordIncorrectError()
 
@@ -296,6 +373,54 @@ class AccountDeleteUpdateFeedbackApi(Resource):
         return {"result": "success"}
 
 
+# [Starry] directory user
+class AccountManageApi(Resource):
+
+    @login_required
+    @account_initialization_required
+    def delete(self, account_id):
+        """Delete a directory."""
+        if not current_user.is_admin_or_owner:
+            raise Forbidden()
+
+        AccountService.delete_account(account_id)
+
+        return {"result": "success"}
+
+    def patch(self, account_id):
+        """Update account's status."""
+        if not current_user.is_admin_or_owner:
+            raise Forbidden()
+
+        parser = reqparse.RequestParser()
+        parser.add_argument('status', type=str, choices=['active', 'closed'], required=True, location='args')
+        args = parser.parse_args()
+
+        AccountService.change_account_status(account_id, args['status'])
+
+        return {"result": "success"}
+
+
+class AccountDmcUserListApi(Resource):
+    @setup_required
+    @login_required
+    @account_initialization_required
+    def post(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('search_key', type=str, required=False, default="", location='json')
+        args = parser.parse_args()
+        opendsClient = OpendsClient()
+        result = []
+        opends_result = opendsClient.user_list_v2(args['search_key'])
+        for user in opends_result:
+            result.append({
+                "dmc_user_id": user["user_id"],
+                "dmc_user_name": user["username"],
+                "dmc_user_name_cn": user["name"]
+            })
+        return {"result": result[0:20]}
+
+
 class EducationVerifyApi(Resource):
     verify_fields = {
         "token": fields.String,
@@ -385,5 +510,9 @@ api.add_resource(AccountDeleteUpdateFeedbackApi, "/account/delete/feedback")
 api.add_resource(EducationVerifyApi, "/account/education/verify")
 api.add_resource(EducationApi, "/account/education")
 api.add_resource(EducationAutoCompleteApi, "/account/education/autocomplete")
+# [Starry] directory user
+api.add_resource(AccountApi, '/account')
+api.add_resource(AccountManageApi, '/account/<uuid:account_id>')
+api.add_resource(AccountDmcUserListApi, '/account/dmc/user/list')
 # api.add_resource(AccountEmailApi, '/account/email')
 # api.add_resource(AccountEmailVerifyApi, '/account/email-verify')

@@ -1,3 +1,6 @@
+# [Starry] directory app
+import logging
+
 from flask_restful import marshal_with  # type: ignore
 
 from controllers.common import fields
@@ -15,6 +18,8 @@ class AppParameterApi(InstalledAppResource):
     @marshal_with(fields.parameters_fields)
     def get(self, installed_app: InstalledApp):
         """Retrieve app parameters."""
+        logging.info(f"id: {installed_app.id}")
+        logging.info(f"app id: {installed_app.app_id}")
         app_model = installed_app.app
 
         if app_model is None:

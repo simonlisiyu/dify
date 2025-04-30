@@ -2,6 +2,8 @@ import Link from 'next/link'
 import Loading from '@/app/components/base/loading'
 
 const Home = async () => {
+  console.log('API PREFIX:', process.env.NEXT_PUBLIC_API_PREFIX);
+
   return (
     <div className="flex min-h-screen flex-col justify-center py-12 sm:px-6 lg:px-8">
 

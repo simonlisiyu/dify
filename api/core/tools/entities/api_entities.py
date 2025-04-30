@@ -37,6 +37,10 @@ class ToolProviderApiEntity(BaseModel):
     plugin_unique_identifier: Optional[str] = Field(default="", description="The unique identifier of the tool")
     tools: list[ToolApiEntity] = Field(default_factory=list)
     labels: list[str] = Field(default_factory=list)
+    # [Starry] directory tool
+    directory_id: str
+    directory_name: str
+    created_at_str: str
 
     @field_validator("tools", mode="before")
     @classmethod
@@ -54,6 +58,13 @@ class ToolProviderApiEntity(BaseModel):
                         parameter["type"] = "files"
         # -------------
 
+        # [Starry] directory tool
+        directory_id = ""
+        if self.directory_id:
+            directory_id = self.directory_id
+        directory_name = ""
+        if self.directory_name:
+            directory_name = self.directory_name
         return {
             "id": self.id,
             "author": self.author,
@@ -69,4 +80,7 @@ class ToolProviderApiEntity(BaseModel):
             "allow_delete": self.allow_delete,
             "tools": tools,
             "labels": self.labels,
+            'directory_id': directory_id,
+            'directory_name': directory_name,
+            'created_at_str': self.created_at_str,
         }

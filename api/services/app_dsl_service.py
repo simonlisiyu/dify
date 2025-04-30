@@ -26,6 +26,9 @@ from core.workflow.nodes.parameter_extractor.entities import ParameterExtractorN
 from core.workflow.nodes.question_classifier.entities import QuestionClassifierNodeData
 from core.workflow.nodes.tool.entities import ToolNodeData
 from events.app_event import app_model_config_was_updated, app_was_created
+
+# [Starry] directory app
+from extensions.ext_database import db
 from extensions.ext_redis import redis_client
 from factories import variable_factory
 from models import Account, App, AppMode
@@ -33,6 +36,8 @@ from models.model import AppModelConfig
 from models.workflow import Workflow
 from services.plugin.dependencies_analysis import DependenciesAnalysisService
 from services.workflow_service import WorkflowService
+
+current_dsl_version = "0.1.0"
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +131,8 @@ class AppDslService:
         icon: Optional[str] = None,
         icon_background: Optional[str] = None,
         app_id: Optional[str] = None,
+        # [Starry] directory app
+        directory_id: str,
     ) -> Import:
         """Import an app from YAML content or URL."""
         import_id = str(uuid.uuid4())
@@ -290,6 +297,8 @@ class AppDslService:
                 icon=icon,
                 icon_background=icon_background,
                 dependencies=check_dependencies_pending_data,
+                # [Starry] directory app
+                directory_id=directory_id,
             )
 
             return Import(
@@ -411,6 +420,8 @@ class AppDslService:
         icon: Optional[str] = None,
         icon_background: Optional[str] = None,
         dependencies: Optional[list[PluginDependency]] = None,
+        # [Starry] directory app
+        directory_id: str,
     ) -> App:
         """Create a new app or update an existing one."""
         app_data = data.get("app", {})
@@ -454,9 +465,17 @@ class AppDslService:
             app.use_icon_as_answer_icon = app_data.get("use_icon_as_answer_icon", False)
             app.created_by = account.id
             app.updated_by = account.id
+            # [Starry] directory app
+            app.account_id = account.id
+            app.directory_id = directory_id
 
-            self._session.add(app)
-            self._session.commit()
+            # self._session.add(app)
+            # self._session.commit()
+            try:
+                self._session.add(app)
+                self._session.commit()
+            except Exception:
+                raise ValueError("import app failed, please change another app name.")
             app_was_created.send(app, account=account)
 
         # save dependencies
@@ -777,3 +796,41 @@ class AppDslService:
             return pt.decode()
         except Exception:
             return None
+
+    # [Starry] directory app
+    @classmethod
+    def export_dsl_list(cls, app_ids: list[str], include_secret: bool = False) -> list[str]:
+        """
+        Export a list of apps
+        :param app_ids: List of app_ids
+        :param include_secret: Whether to include secrets in the export
+        :return: List of exported apps in YAML format
+        """
+        filters = [
+            App.id.in_(app_ids)
+        ]
+        apps = db.session.query(App).filter(*filters).all()
+
+        exported_apps = []
+        for app_model in apps:
+            app_mode = AppMode.value_of(app_model.mode)
+            export_data = {
+                "version": current_dsl_version,
+                "kind": "app",
+                "app": {
+                    "name": app_model.name,
+                    "mode": app_model.mode,
+                    "icon": app_model.icon,
+                    "icon_background": app_model.icon_background,
+                    "description": app_model.description
+                }
+            }
+
+            if app_mode in [AppMode.ADVANCED_CHAT, AppMode.WORKFLOW]:
+                cls._append_workflow_export_data(export_data=export_data, app_model=app_model, include_secret=include_secret)
+            else:
+                cls._append_model_config_export_data(export_data, app_model)
+
+            exported_apps.append(yaml.dump(export_data))
+
+        return exported_apps

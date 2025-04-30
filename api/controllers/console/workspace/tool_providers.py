@@ -1,10 +1,13 @@
 import io
 
+# [Starry] directory tool
+import uuid
+
 from flask import send_file
 from flask_login import current_user  # type: ignore
 from flask_restful import Resource, reqparse  # type: ignore
 from sqlalchemy.orm import Session
-from werkzeug.exceptions import Forbidden
+from werkzeug.exceptions import Forbidden, abort
 
 from configs import dify_config
 from controllers.console import api
@@ -18,6 +21,13 @@ from services.tools.builtin_tools_manage_service import BuiltinToolManageService
 from services.tools.tool_labels_service import ToolLabelsService
 from services.tools.tools_manage_service import ToolCommonService
 from services.tools.workflow_tools_manage_service import WorkflowToolManageService
+
+
+def uuid_str(value):
+    try:
+        return str(uuid.UUID(value))
+    except ValueError:
+        abort(400, message="Invalid UUID format in parent_id.")
 
 
 class ToolProviderListApi(Resource):
@@ -39,9 +49,18 @@ class ToolProviderListApi(Resource):
             nullable=True,
             location="args",
         )
+        # [Starry] directory tool
+        req.add_argument('directory_id', type=uuid_str, required=True, nullable=False, location='args')
+        req.add_argument('created_start', type=str, location='args', required=False)
+        req.add_argument('created_end', type=str, location='args', required=False)
+        req.add_argument('account_id', type=str, location='args', required=False)
+        req.add_argument('order_by', type=str, choices=['desc', 'asc'], location='args', required=False)
         args = req.parse_args()
 
-        return ToolCommonService.list_tool_providers(user_id, tenant_id, args.get("type", None))
+        # return ToolCommonService.list_tool_providers(user_id, tenant_id, args.get("type", None))
+        return ToolCommonService.list_tool_providers(user_id, tenant_id, args.get('type', None), args.get('directory_id', None),
+                                                     args.get('created_start', None), args.get('created_end', None),
+                                                     args.get('account_id', None), args.get('order_by', None))
 
 
 class ToolBuiltinProviderListToolsApi(Resource):
@@ -152,7 +171,7 @@ class ToolApiProviderAddApi(Resource):
     def post(self):
         user = current_user
 
-        if not user.is_admin_or_owner:
+        if not user.is_admin_or_owner and not user.is_editor:
             raise Forbidden()
 
         user_id = user.id
@@ -167,6 +186,8 @@ class ToolApiProviderAddApi(Resource):
         parser.add_argument("privacy_policy", type=str, required=False, nullable=True, location="json")
         parser.add_argument("labels", type=list[str], required=False, nullable=True, location="json", default=[])
         parser.add_argument("custom_disclaimer", type=str, required=False, nullable=True, location="json")
+        # [Starry] directory tool
+        parser.add_argument("directory_id", type=str, required=True, location="json")
 
         args = parser.parse_args()
 
@@ -181,6 +202,8 @@ class ToolApiProviderAddApi(Resource):
             args.get("privacy_policy", ""),
             args.get("custom_disclaimer", ""),
             args.get("labels", []),
+            # [Starry] directory tool
+            args.get("directory_id"),
         )
 
 
@@ -239,7 +262,9 @@ class ToolApiProviderUpdateApi(Resource):
     def post(self):
         user = current_user
 
-        if not user.is_admin_or_owner:
+        # [Starry] directory tool
+        # if not current_user.is_admin_or_owner:
+        if not user.is_admin_or_owner and not user.is_editor:
             raise Forbidden()
 
         user_id = user.id
@@ -280,7 +305,9 @@ class ToolApiProviderDeleteApi(Resource):
     def post(self):
         user = current_user
 
-        if not user.is_admin_or_owner:
+        # [Starry] directory tool
+        # if not current_user.is_admin_or_owner:
+        if not user.is_admin_or_owner and not user.is_editor:
             raise Forbidden()
 
         user_id = user.id
@@ -384,7 +411,9 @@ class ToolWorkflowProviderCreateApi(Resource):
     def post(self):
         user = current_user
 
-        if not user.is_admin_or_owner:
+        # [Starry] directory tool
+        # if not current_user.is_admin_or_owner:
+        if not user.is_admin_or_owner and not user.is_editor:
             raise Forbidden()
 
         user_id = user.id
@@ -399,6 +428,8 @@ class ToolWorkflowProviderCreateApi(Resource):
         reqparser.add_argument("parameters", type=list[dict], required=True, nullable=False, location="json")
         reqparser.add_argument("privacy_policy", type=str, required=False, nullable=True, location="json", default="")
         reqparser.add_argument("labels", type=list[str], required=False, nullable=True, location="json")
+        # [Starry] directory tool
+        reqparser.add_argument("directory_id", type=str, required=True, nullable=False, location="json")
 
         args = reqparser.parse_args()
 
@@ -413,6 +444,7 @@ class ToolWorkflowProviderCreateApi(Resource):
             parameters=args["parameters"],
             privacy_policy=args["privacy_policy"],
             labels=args["labels"],
+            directory_id=args["directory_id"],
         )
 
 
@@ -423,7 +455,9 @@ class ToolWorkflowProviderUpdateApi(Resource):
     def post(self):
         user = current_user
 
-        if not user.is_admin_or_owner:
+        # [Starry] directory tool
+        # if not current_user.is_admin_or_owner:
+        if not user.is_admin_or_owner and not user.is_editor:
             raise Forbidden()
 
         user_id = user.id
@@ -465,7 +499,9 @@ class ToolWorkflowProviderDeleteApi(Resource):
     def post(self):
         user = current_user
 
-        if not user.is_admin_or_owner:
+        # [Starry] directory tool
+        # if not current_user.is_admin_or_owner:
+        if not user.is_admin_or_owner and not user.is_editor:
             raise Forbidden()
 
         user_id = user.id

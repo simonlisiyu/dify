@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 import uuid
 from collections.abc import Mapping
@@ -82,7 +83,7 @@ class App(Base):
     description = db.Column(db.Text, nullable=False, server_default=db.text("''::character varying"))
     mode: Mapped[str] = mapped_column(db.String(255), nullable=False)
     icon_type = db.Column(db.String(255), nullable=True)  # image, emoji
-    icon = db.Column(db.String(255))
+    icon = db.Column(db.String(40960))
     icon_background = db.Column(db.String(255))
     app_model_config_id = db.Column(StringUUID, nullable=True)
     workflow_id = db.Column(StringUUID, nullable=True)
@@ -101,6 +102,45 @@ class App(Base):
     updated_by = db.Column(StringUUID, nullable=True)
     updated_at = db.Column(db.DateTime, nullable=False, server_default=func.current_timestamp())
     use_icon_as_answer_icon = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
+    # [Starry] directory app
+    account_id = db.Column(StringUUID, nullable=False)
+    directory_id = db.Column(StringUUID, nullable=False)
+
+    @property
+    def created_at_str(self):
+        return self.created_at.strftime('%Y-%m-%d %H:%M:%S')
+
+    @property
+    def updated_at_str(self):
+        return self.updated_at.strftime('%Y-%m-%d %H:%M:%S')
+
+    @property
+    def mode_cn(self):
+        if self.mode == 'chat':
+            return '对话型'
+        elif self.mode == 'completion':
+            return '基础生成'
+        elif self.mode == 'workflow':
+            return '工作流生成'
+        elif self.mode == 'agent-chat':
+            return '高级对话'
+        elif self.mode == 'advanced-chat':
+            return '工作流对话'
+        return '未知'
+
+    @property
+    def account_name(self):
+        account = db.session.query(Account).filter(
+            Account.id == self.account_id
+        ).first()
+        return account.name
+
+    @property
+    def directory_name(self):
+        directory = db.session.query(Directory).filter(
+            Directory.id == self.directory_id
+        ).first()
+        return directory.name
 
     @property
     def desc_or_prompt(self):
@@ -573,7 +613,34 @@ class RecommendedApp(Base):
         return app
 
 
-class InstalledApp(Base):
+# [Starry] directory app
+class TemplateApp(Base):
+    __tablename__ = 'template_apps'
+    __table_args__ = (
+        db.PrimaryKeyConstraint('id', name='template_apps_pkey'),
+        db.Index('template_app_is_listed_idx', 'is_listed', 'language')
+    )
+
+    id = db.Column(StringUUID, primary_key=True, server_default=db.text('uuid_generate_v4()'))
+    tenant_id = db.Column(StringUUID, nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    mode = db.Column(db.String(16), nullable=False)
+    category = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.String(4096), nullable=False)
+    icon = db.Column(db.String(255), nullable=False)
+    icon_background = db.Column(db.String(255), nullable=False)
+    export_data = db.Column(db.Text, nullable=False)
+    copyright = db.Column(db.String(255), nullable=True)
+    privacy_policy = db.Column(db.String(255), nullable=True)
+    position = db.Column(db.Integer, nullable=False, default=0)
+    is_listed = db.Column(db.Boolean, nullable=False, default=True)
+    install_count = db.Column(db.Integer, nullable=False, default=0)
+    language = db.Column(db.String(255), nullable=False, server_default=db.text("'zh-Hans'::character varying"))
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.text('CURRENT_TIMESTAMP(0)'))
+    updated_at = db.Column(db.DateTime, nullable=False, server_default=db.text('CURRENT_TIMESTAMP(0)'))
+
+
+class InstalledApp(Base):  # type: ignore[name-defined]
     __tablename__ = "installed_apps"
     __table_args__ = (
         db.PrimaryKeyConstraint("id", name="installed_app_pkey"),
@@ -590,16 +657,42 @@ class InstalledApp(Base):
     is_pinned = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
     last_used_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, server_default=func.current_timestamp())
+    # [Starry] directory installed app
+    mode = "chat"
+    conversation_account_count = 0
+    conversation_count = 0
+    favourite_account_count = 0
+    is_favourite = False
+    app = None
 
-    @property
-    def app(self):
-        app = db.session.query(App).filter(App.id == self.app_id).first()
-        return app
+    # [Starry] directory installed app
+    # @property
+    # def app(self):
+    #     app = db.session.query(App).filter(App.id == self.app_id).first()
+    #     return app
 
     @property
     def tenant(self):
         tenant = db.session.query(Tenant).filter(Tenant.id == self.tenant_id).first()
         return tenant
+
+
+# [Starry] directory installed app
+class InstalledAppFavourite(db.Model):
+    __tablename__ = 'installed_apps_favourite'
+    __table_args__ = (
+        db.PrimaryKeyConstraint('id', name='faverite_app_pkey'),
+        db.Index('installed_apps_faverite_account_id_idx', 'account_id'),
+        db.UniqueConstraint('account_id', 'installed_app_id', name='unique_faverite_app')
+    )
+
+    id = db.Column(StringUUID, server_default=db.text('uuid_generate_v4()'))
+    account_id = db.Column(StringUUID, nullable=False)
+    app_id = db.Column(StringUUID, nullable=False)
+    installed_app_id = db.Column(StringUUID, nullable=False)
+    is_pinned = db.Column(db.Boolean, nullable=False, server_default=db.text('false'))
+    last_used_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.text('CURRENT_TIMESTAMP(0)'))
 
 
 class Conversation(db.Model):  # type: ignore[name-defined]
@@ -1822,3 +1915,180 @@ class TraceAppConfig(Base):
             "created_at": str(self.created_at) if self.created_at else None,
             "updated_at": str(self.updated_at) if self.updated_at else None,
         }
+
+
+# [Starry] directory
+class Directory(db.Model):
+    __tablename__ = 'directory'
+    __table_args__ = (
+        db.PrimaryKeyConstraint('id', name='directory_pkey'),
+        db.UniqueConstraint('name', name='unique_directory_name')
+    )
+
+    DIRECTORY_TYPE_LIST = ['knowledge', 'app', 'tool']
+
+    id = db.Column(StringUUID, server_default=db.text('uuid_generate_v4()'))
+    tenant_id = db.Column(StringUUID, nullable=False)
+    name = db.Column(db.String(255), nullable=True)
+    type = db.Column(db.String(16), nullable=True)
+    level = db.Column(db.Integer, nullable=False)
+    parent_id = db.Column(StringUUID, db.ForeignKey('directory.id'), nullable=False)
+    last_used_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.text('CURRENT_TIMESTAMP(0)'))
+
+    @staticmethod
+    def get_sub_dirs(type: str, parent_id: str):
+        recursive_query = """
+        WITH RECURSIVE DirTree AS (
+            SELECT id, name, type, level, parent_id, created_at
+            FROM Directory
+            {condition}
+            UNION ALL
+            SELECT d.id, d.name, d.type, d.level, d.parent_id, d.created_at
+            FROM Directory d
+            INNER JOIN DirTree dt ON d.parent_id = dt.id
+        )
+        SELECT * FROM DirTree ORDER BY created_at DESC;
+        """
+
+        condition = f"WHERE type = '{type}' AND parent_id IS NULL" if parent_id is None or parent_id.strip() == "" \
+            else f"WHERE type = '{type}' AND parent_id  = '{parent_id}'"
+        final_query = text(recursive_query.format(condition=condition))
+        logging.info(f"final_query={final_query}")
+
+        result = db.session.execute(final_query)
+        directory_all = result.fetchall()
+        logging.info(f"directory_all.len={len(directory_all)}")
+        return directory_all
+
+    @staticmethod
+    def generate_dir_tree(type: str, parent_id: str):
+        directory_all = Directory.get_sub_dirs(type, parent_id)
+
+        def transform_data(data):
+            result = []
+            for item in data:
+                item_dict = {
+                    "id": str(item[0]),
+                    "name": item[1],
+                    "type": item[2],
+                    "level": item[3],
+                    "parent_id": str(item[4]),
+                    "sub_dir": [],
+                    "binding_count": DirectoryBindings.get_directory_bindings_count(str(item[0]))
+                }
+                logging.info(f"item_dict={item_dict}")
+                result.append(item_dict)
+                logging.info(f"result={result}")
+            return result
+
+        directory_all_dict = transform_data(directory_all)
+        logging.info(f"directory_all_dict={directory_all_dict}")
+
+        def build_hierarchy(data, parent_id=None):
+            result = []
+            for item in data:
+                if item['parent_id'] == str(parent_id):
+                    item_copy = item.copy()
+                    sub_dir = build_hierarchy(data, item['id'])
+                    sub_binding_count = sum(sub_item['binding_count'] for sub_item in sub_dir)
+                    item_copy['binding_count'] += sub_binding_count
+                    item_copy['sub_dir'] = sub_dir
+                    result.append(item_copy)
+            return result
+        directory_tree = build_hierarchy(directory_all_dict, parent_id)
+        logging.info(f"directory_tree={directory_tree}")
+
+        # dirs_with_count = DirectoryBindings.get_total_directory_bindings_count(directory_tree)
+        return directory_tree
+
+
+# [Starry] directory bindings
+class DirectoryBindings(db.Model):
+    __tablename__ = 'directory_bindings'
+    __table_args__ = (
+        db.PrimaryKeyConstraint('id', name='directory_binding_pkey'),
+        db.Index('directory_bind_target_id_idx', 'target_id'),
+        db.Index('directory_bind_id_idx', 'directory_id'),
+    )
+
+    id = db.Column(StringUUID, server_default=db.text('uuid_generate_v4()'))
+    tenant_id = db.Column(StringUUID, nullable=True)
+    directory_id = db.Column(StringUUID, nullable=True)
+    target_id = db.Column(StringUUID, nullable=True)
+    created_by = db.Column(StringUUID, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.text('CURRENT_TIMESTAMP(0)'))
+
+    @staticmethod
+    def get_directory_bindings_count(directory_id: str) -> int:
+        dir_obj_count = db.session.query(func.count(DirectoryBindings.id)) \
+            .filter(DirectoryBindings.directory_id == directory_id).scalar()
+        return dir_obj_count
+
+    @staticmethod
+    def get_total_directory_bindings_count(dir_tree):
+        def get_all_sub_dir_ids(dir_obj):
+            ids = [dir_obj['id']]
+            if dir_obj.__contains__('sub_dir') and dir_obj['sub_dir']:
+                for sub_dir in dir_obj['sub_dir']:
+                    ids.extend(get_all_sub_dir_ids(sub_dir))
+            return ids
+
+        for directory in dir_tree:
+            logging.info(f"dir_tree={len(dir_tree)}")
+            logging.info(f"directory={directory}")
+            all_child_ids = get_all_sub_dir_ids(directory)
+            total_count = db.session.query(func.count(DirectoryBindings.id)).filter(DirectoryBindings.directory_id.in_(all_child_ids)).scalar()
+            directory['binding_count'] = total_count
+
+        return dir_tree
+
+
+class BatchRunRecordStatus(Enum):
+    NEW = 0
+    RUNNING = 1
+    SUCCESS = 2
+    FAIL = 3
+
+
+class InstalledAppBatchRun(db.Model):  # type: ignore[name-defined]
+    __tablename__ = "installed_app_batch_run"
+    __table_args__ = (
+        db.PrimaryKeyConstraint("id", name="installed_app_batch_run_pkey"),
+        db.Index("installed_app_batch_run_tenant_id_idx", "tenant_id")
+    )
+
+    id = db.Column(StringUUID, server_default=db.text("uuid_generate_v4()"))
+    tenant_id = db.Column(StringUUID, nullable=True)
+    app_id = db.Column(StringUUID, nullable=True)
+    created_by = db.Column(StringUUID, nullable=False)
+    meta = db.Column(db.Text, nullable=False, server_default=db.text("'{}'::text"))
+    created_at = db.Column(db.DateTime, nullable=False, server_default=func.current_timestamp())
+
+
+class InstalledAppBatchRunRecord(db.Model):  # type: ignore[name-defined]
+    __tablename__ = "installed_app_batch_run_record"
+    __table_args__ = (
+        db.PrimaryKeyConstraint("id", name="installed_app_batch_run_record_pkey"),
+        db.Index("installed_app_batch_run_record_tenant_id_idx", "tenant_id")
+    )
+
+    id = db.Column(StringUUID, server_default=db.text("uuid_generate_v4()"))
+    tenant_id = db.Column(StringUUID, nullable=True)
+    app_id = db.Column(StringUUID, nullable=True)
+    app_name = db.Column(db.String(255), nullable=True)
+    from_pro = db.Column(db.String(255), nullable=True)
+    input_tb_id = db.Column(db.String(255), nullable=True)
+    input_tb_name = db.Column(db.String(255), nullable=True)
+    output_tb_id = db.Column(db.String(255), nullable=True)
+    output_tb_name = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, server_default=func.current_timestamp())
+    updated_at = db.Column(db.DateTime, nullable=False, server_default=func.current_timestamp())
+    created_by = db.Column(StringUUID, nullable=False)
+    all_data_count = db.Column(db.Integer, nullable=False)
+    success_data_count = db.Column(db.Integer, nullable=False)
+    fail_data_count = db.Column(db.Integer, nullable=False)
+    meta = db.Column(db.Text, nullable=False, server_default=db.text("'{}'::text"))
+    status = db.Column(db.Integer, nullable=False)
+    error_msg = db.Column(db.Text, nullable=False, server_default=db.text("'{}'::text"))
+    folder_from = db.Column(db.String(255), nullable=True)

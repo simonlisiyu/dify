@@ -1,8 +1,13 @@
+import logging
+
+# [Starry] directory dataset
+import uuid
+
 import flask_restful  # type: ignore
 from flask import request
 from flask_login import current_user  # type: ignore  # type: ignore
 from flask_restful import Resource, marshal, marshal_with, reqparse  # type: ignore
-from werkzeug.exceptions import Forbidden, NotFound
+from werkzeug.exceptions import Forbidden, NotFound, abort
 
 import services
 from configs import dify_config
@@ -46,6 +51,14 @@ def _validate_description_length(description):
     return description
 
 
+# [Starry] directory dataset
+def uuid_str(value):
+    try:
+        return str(uuid.UUID(value))
+    except ValueError:
+        abort(400, message="Invalid UUID format in parent_id.")
+
+
 class DatasetListApi(Resource):
     @setup_required
     @login_required
@@ -59,11 +72,31 @@ class DatasetListApi(Resource):
         search = request.args.get("keyword", default=None, type=str)
         tag_ids = request.args.getlist("tag_ids")
         include_all = request.args.get("include_all", default="false").lower() == "true"
+        # [Starry] directory dataset
+        directory_id = request.args.get('directory_id', type=uuid_str)
+        created_start = request.args.get('created_start', default=None, type=str)
+        created_end = request.args.get('created_end', default=None, type=str)
+        account_id = request.args.get('account_id', default=None, type=str)
+        order_by = request.args.get('order_by', default=None, type=str)
+
+        logging.info(f"directory_id={directory_id}")
         if ids:
             datasets, total = DatasetService.get_datasets_by_ids(ids, current_user.current_tenant_id)
         else:
+            # [Starry] directory dataset
             datasets, total = DatasetService.get_datasets(
-                page, limit, current_user.current_tenant_id, current_user, search, tag_ids, include_all
+                page=page,
+                per_page=limit,
+                tenant_id=current_user.current_tenant_id,
+                user=current_user,
+                search=search,
+                tag_ids=tag_ids,
+                include_all=include_all,
+                directory_id=directory_id,
+                created_start=created_start,
+                created_end=created_end,
+                account_id=account_id,
+                order_by=order_by
             )
 
         # check embedding setting
@@ -146,6 +179,8 @@ class DatasetListApi(Resource):
             nullable=True,
             required=False,
         )
+        # [Starry] directory dataset
+        parser.add_argument('directory_id', type=str, location='json', required=True)
         args = parser.parse_args()
 
         # The role of the current user in the ta table must be admin, owner, or editor, or dataset_operator
@@ -163,6 +198,8 @@ class DatasetListApi(Resource):
                 provider=args["provider"],
                 external_knowledge_api_id=args["external_knowledge_api_id"],
                 external_knowledge_id=args["external_knowledge_id"],
+                # [Starry] directory dataset
+                directory_id=args['directory_id'],
             )
         except services.errors.dataset.DatasetNameDuplicateError:
             raise DatasetNameDuplicateError()

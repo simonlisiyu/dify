@@ -17,6 +17,8 @@ account_fields = {
     "last_login_at": TimestampField,
     "last_login_ip": fields.String,
     "created_at": TimestampField,
+    "dmc_user_id": fields.Raw(attribute="get_dmc_user_id"),
+    "dmc_user_name": fields.Raw(attribute="get_dmc_user_name"),
 }
 
 account_with_role_fields = {
@@ -30,6 +32,8 @@ account_with_role_fields = {
     "created_at": TimestampField,
     "role": fields.String,
     "status": fields.String,
+    "dmc_user_id": fields.Raw(attribute="get_dmc_user_id"),
+    "dmc_user_name": fields.Raw(attribute="get_dmc_user_name"),
 }
 
 account_with_role_list_fields = {"accounts": fields.List(fields.Nested(account_with_role_fields))}

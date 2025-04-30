@@ -37,6 +37,8 @@ class WorkflowToolManageService:
         parameters: list[Mapping[str, Any]],
         privacy_policy: str = "",
         labels: list[str] | None = None,
+        # [Starry] directory tool
+        directory_id: str,
     ) -> dict:
         WorkflowToolConfigurationUtils.check_parameter_configurations(parameters)
 
@@ -74,6 +76,7 @@ class WorkflowToolManageService:
             parameter_configuration=json.dumps(parameters),
             privacy_policy=privacy_policy,
             version=workflow.version,
+            directory_id=directory_id,
         )
 
         try:
@@ -81,6 +84,8 @@ class WorkflowToolManageService:
         except Exception as e:
             raise ValueError(str(e))
 
+        # [Starry] directory tool
+        workflow_tool_provider.account_id = user_id
         db.session.add(workflow_tool_provider)
         db.session.commit()
 

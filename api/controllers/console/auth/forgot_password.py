@@ -19,7 +19,7 @@ from controllers.console.error import AccountInFreezeError, AccountNotFound, Ema
 from controllers.console.wraps import email_password_login_enabled, setup_required
 from events.tenant_event import tenant_was_created
 from extensions.ext_database import db
-from libs.helper import email, extract_remote_ip
+from libs.helper import extract_remote_ip
 from libs.password import hash_password, valid_password
 from models.account import Account
 from services.account_service import AccountService, TenantService
@@ -33,8 +33,10 @@ class ForgotPasswordSendEmailApi(Resource):
     @email_password_login_enabled
     def post(self):
         parser = reqparse.RequestParser()
-        parser.add_argument("email", type=email, required=True, location="json")
-        parser.add_argument("language", type=str, required=False, location="json")
+        # [Starry] directory user
+        # parser.add_argument("email", type=email, required=True, location="json")
+        parser.add_argument("email", type=str, required=True, location="json")
+        parser.add_argument("language", type=str, required=False, default="zh-Hans", location="json")
         args = parser.parse_args()
 
         ip_address = extract_remote_ip(request)

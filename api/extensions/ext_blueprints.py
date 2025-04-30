@@ -10,6 +10,7 @@ def init_app(app: DifyApp):
     from controllers.console import bp as console_app_bp
     from controllers.files import bp as files_bp
     from controllers.inner_api import bp as inner_api_bp
+    from controllers.outer_api import bp as outer_api_bp
     from controllers.service_api import bp as service_api_bp
     from controllers.web import bp as web_bp
 
@@ -46,3 +47,11 @@ def init_app(app: DifyApp):
     app.register_blueprint(files_bp)
 
     app.register_blueprint(inner_api_bp)
+
+    # [Starry] directory outer api
+    CORS(
+        outer_api_bp,
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH"],
+    )
+    app.register_blueprint(outer_api_bp)

@@ -1,0 +1,140 @@
+provider: alita
+label:
+  en_US: Alita
+description:
+  en_US: Models provided by haizhi, support all models.
+  zh_Hans: 海致提供的模型服务，支持最新的开源模型和商用模型 。
+icon_small:
+  en_US: icon_s_en.svg
+icon_large:
+  en_US: icon_l_en.svg
+background: "#F3F4F6"
+help:
+  title:
+    en_US: How to deploy Alita
+    zh_Hans: 如何部署 Alita
+  url:
+    en_US: https://git.haizhi.com/AI/alita
+supported_model_types:
+  - llm
+  - text-embedding
+  - rerank
+  - speech2text
+  - tts
+configurate_methods:
+  - customizable-model
+model_credential_schema:
+  model:
+    label:
+      en_US: Model Name
+      zh_Hans: 模型名称
+    placeholder:
+      en_US: Enter your model name
+      zh_Hans: 输入模型名称
+  credential_form_schemas:
+    - variable: server_url
+      label:
+        zh_Hans: 服务器URL
+        en_US: Server url
+      type: text-input
+      required: true
+      placeholder:
+        zh_Hans: 在此输入Alita的服务器地址，如 http://192.168.1.100:23620
+        en_US: Enter the url of your Alita, e.g. http://192.168.1.100:23620
+    - variable: server_url_standard
+      label:
+        en_US: Is Server url Standard
+        zh_Hans: 服务器URL是否标准
+      type: select
+      required: true
+      default: standard
+      placeholder:
+        zh_Hans: 选择是否标准
+        en_US: Select standard type
+      options:
+        - value: standard
+          label:
+            en_US: standard
+            zh_Hans: 标准
+        - value: not_standard
+          label:
+            en_US: not_standard
+            zh_Hans: 不标准
+    - variable: api_key
+      label:
+        en_US: Alita API Key
+      type: secret-input
+      required: false
+      placeholder:
+        zh_Hans: 在此输入您的 Alita API Key
+        en_US:
+          Enter your API Key
+    - variable: completion_type
+      show_on:
+        - variable: __model_type
+          value: llm
+      label:
+        en_US: Completion type
+      type: select
+      required: false
+      default: chat_completion
+      placeholder:
+        zh_Hans: 选择对话类型
+        en_US: Select completion type
+      options:
+        - value: completion
+          label:
+            en_US: Completion
+            zh_Hans: 补全
+        - value: chat_completion
+          label:
+            en_US: ChatCompletion
+            zh_Hans: 对话
+    - variable: context_size
+      show_on:
+        - variable: __model_type
+          value: llm
+      label:
+        zh_Hans: 上下文大小
+        en_US: Context size
+      placeholder:
+        zh_Hans: 输入上下文大小
+        en_US: Enter context size
+      required: false
+      type: text-input
+      default: "4096"
+    - variable: vision_support
+      show_on:
+        - variable: __model_type
+          value: llm
+      label:
+        zh_Hans: Vision 支持
+        en_US: Vision Support
+      type: select
+      required: false
+      default: no_support
+      options:
+        - value: support
+          label:
+            en_US: Support
+            zh_Hans: 支持
+        - value: no_support
+          label:
+            en_US: Not Support
+            zh_Hans: 不支持
+    - variable: voices
+      show_on:
+        - variable: __model_type
+          value: tts
+      label:
+        en_US: Available Voices (comma-separated)
+        zh_Hans: 可用声音（用英文逗号分隔）
+      type: text-input
+      required: false
+      default: "alloy"
+      placeholder:
+        en_US: "alloy,echo,fable,onyx,nova,shimmer"
+        zh_Hans: "alloy,echo,fable,onyx,nova,shimmer"
+      help:
+        en_US: "List voice names separated by commas. First voice will be used as default."
+        zh_Hans: "用英文逗号分隔的声音列表。第一个声音将作为默认值。"

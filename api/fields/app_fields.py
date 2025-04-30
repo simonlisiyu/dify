@@ -98,6 +98,14 @@ app_partial_fields = {
     "updated_by": fields.String,
     "updated_at": TimestampField,
     "tags": fields.List(fields.Nested(tag_fields)),
+    # [Starry] directory app
+    'mode_cn': fields.String(),
+    'directory_id': fields.String,
+    'directory_name': fields.String,
+    'account_id': fields.String,
+    'account_name': fields.String,
+    'is_public': fields.Boolean,
+    'created_at_str': fields.String,
 }
 
 

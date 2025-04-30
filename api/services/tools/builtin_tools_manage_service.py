@@ -15,6 +15,9 @@ from core.tools.errors import ToolNotFoundError, ToolProviderCredentialValidatio
 from core.tools.tool_label_manager import ToolLabelManager
 from core.tools.tool_manager import ToolManager
 from core.tools.utils.configuration import ProviderConfigEncrypter
+
+# [Starry] directory tool
+from core.tools.tool_manager import BUILTIN_TOOL_LIST, ToolManager
 from extensions.ext_database import db
 from models.tools import BuiltinToolProvider
 from services.tools.tools_transform_service import ToolTransformService
@@ -249,6 +252,9 @@ class BuiltinToolManageService:
             result: list[ToolProviderApiEntity] = []
 
             for provider_controller in provider_controllers:
+                # [Starry] directory tool
+                if provider_controller.identity.name not in BUILTIN_TOOL_LIST:
+                    continue
                 try:
                     # handle include, exclude
                     if is_filtered(

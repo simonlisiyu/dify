@@ -22,6 +22,9 @@ from core.tools.utils.configuration import ProviderConfigEncrypter
 from core.tools.utils.parser import ApiBasedToolSchemaParser
 from extensions.ext_database import db
 from models.tools import ApiToolProvider
+
+# [Starry] directory tool
+from services.directory_service import DirectoryService
 from services.tools.tools_transform_service import ToolTransformService
 
 logger = logging.getLogger(__name__)
@@ -107,6 +110,7 @@ class ApiToolManageService:
         privacy_policy: str,
         custom_disclaimer: str,
         labels: list[str],
+        directory_id: str,
     ):
         """
         create api tool provider
@@ -150,6 +154,9 @@ class ApiToolManageService:
             credentials_str={},
             privacy_policy=privacy_policy,
             custom_disclaimer=custom_disclaimer,
+            # [Starry] directory tool
+            directory_id=directory_id,
+            account_id=user_id,
         )
 
         if "auth_type" not in credentials:
@@ -176,6 +183,10 @@ class ApiToolManageService:
 
         db.session.add(db_provider)
         db.session.commit()
+
+        # [Starry] directory tool
+        directory_service = DirectoryService()
+        directory_service.save_directory_binding(directory_id, [db_provider.id], 'tool')
 
         # update labels
         ToolLabelManager.update_tool_labels(provider_controller, labels)

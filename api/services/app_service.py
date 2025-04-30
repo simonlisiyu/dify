@@ -18,8 +18,11 @@ from core.tools.utils.configuration import ToolParameterConfigurationManager
 from events.app_event import app_was_created
 from extensions.ext_database import db
 from models.account import Account
-from models.model import App, AppMode, AppModelConfig
+from models.model import App, AppMode, AppModelConfig, InstalledApp
 from models.tools import ApiToolProvider
+
+# [Starry] directory app
+from services.directory_service import DirectoryService
 from services.tag_service import TagService
 from tasks.remove_app_and_related_data_task import remove_app_and_related_data_task
 
@@ -35,6 +38,13 @@ class AppService:
         """
         filters = [App.tenant_id == tenant_id, App.is_universal == False]
 
+        # [Starry] directory app
+        directory_service = DirectoryService()
+        directory_all_sub = directory_service.get_sub_directorys('app', args['directory_id'])
+        directory_id_list = [str(directory.id) for directory in directory_all_sub]
+        directory_id_list.append(args['directory_id'])
+        filters.append(App.directory_id.in_(directory_id_list))
+
         if args["mode"] == "workflow":
             filters.append(App.mode == AppMode.WORKFLOW.value)
         elif args["mode"] == "completion":
@@ -47,9 +57,26 @@ class AppService:
             filters.append(App.mode == AppMode.AGENT_CHAT.value)
         elif args["mode"] == "channel":
             filters.append(App.mode == AppMode.CHANNEL.value)
+        # [Starry] directory app
+        elif args['mode'] == 'completion':
+            filters.append(App.mode == AppMode.COMPLETION.value)
+        elif args['mode'] == 'advanced-chat':
+            filters.append(App.mode == AppMode.ADVANCED_CHAT.value)
 
-        if args.get("is_created_by_me", False):
-            filters.append(App.created_by == user_id)
+        # [Starry] directory app
+        # if args.get("is_created_by_me", False):
+        #     filters.append(App.created_by == user_id)
+        if args.get('account_id'):
+            filters.append(App.account_id == args['account_id'])
+        if args.get('created_start'):
+            filters.append(App.created_at >= args['created_start'])
+        if args.get('created_end'):
+            filters.append(App.created_at < args['created_end'])
+        if args.get('is_publish'):
+            if args['is_publish'] == 1:
+                filters.append(App.is_public == True)
+            elif args['is_publish'] == 0:
+                filters.append(App.is_public == False)
         if args.get("name"):
             name = args["name"][:30]
             filters.append(App.name.ilike(f"%{name}%"))
@@ -60,12 +87,22 @@ class AppService:
             else:
                 return None
 
+        # app_models = db.paginate(
+        #     db.select(App).where(*filters).order_by(App.created_at.desc()),
+        #     page=args["page"],
+        #     per_page=args["limit"],
+        #     error_out=False,
+        # )
+        order_by_expression = App.created_at.desc()
+        if args.get('order_by'):
+            order_by_expression = App.created_at.desc() if args['order_by'] == 'desc' else App.created_at.asc()
         app_models = db.paginate(
-            db.select(App).where(*filters).order_by(App.created_at.desc()),
-            page=args["page"],
-            per_page=args["limit"],
-            error_out=False,
+            db.select(App).where(*filters).order_by(order_by_expression),
+            page=args['page'],
+            per_page=args['limit'],
+            error_out=False
         )
+        logging.info(f"Total items: {app_models.total}")
 
         return app_models
 
@@ -137,6 +174,9 @@ class AppService:
         app.api_rpm = args.get("api_rpm", 0)
         app.created_by = account.id
         app.updated_by = account.id
+        # [Starry] directory app
+        app.directory_id = args['directory_id']
+        app.account_id = account.id
 
         db.session.add(app)
         db.session.flush()
@@ -216,6 +256,48 @@ class AppService:
 
         return app
 
+    # [Starry] directory installed app
+    def get_apps(self, tenant_id: str, args: dict) -> list[App] | None:
+        """
+        Get app list
+        :param tenant_id: tenant id
+        :param args: request args
+        :return:
+        """
+        filters = [
+            App.is_universal == False
+        ]
+
+        if args['mode'] == 'workflow':
+            filters.append(App.mode == AppMode.WORKFLOW.value)
+        elif args['mode'] == 'chat':
+            filters.append(App.mode == AppMode.CHAT.value)
+        elif args['mode'] == 'agent-chat':
+            filters.append(App.mode == AppMode.AGENT_CHAT.value)
+        elif args['mode'] == 'completion':
+            filters.append(App.mode == AppMode.COMPLETION.value)
+        elif args['mode'] == 'advanced-chat':
+            filters.append(App.mode == AppMode.ADVANCED_CHAT.value)
+
+        if args.get('name'):
+            name = args['name'][:30]
+            filters.append(App.name.ilike(f'%{name}%'))
+        if args.get('account_id'):
+            account_id = args['account_id']
+            filters.append(App.account_id == account_id)
+        if args.get('tag_ids'):
+            target_ids = TagService.get_target_ids_by_tag_ids('app',
+                                                              tenant_id,
+                                                              args['tag_ids'])
+            if target_ids:
+                filters.append(App.id.in_(target_ids))
+            else:
+                return None
+
+        apps = db.session.query(App).filter(*filters).all()
+
+        return apps
+
     def update_app(self, app: App, args: dict) -> App:
         """
         Update app
@@ -231,6 +313,9 @@ class AppService:
         app.use_icon_as_answer_icon = args.get("use_icon_as_answer_icon", False)
         app.updated_by = current_user.id
         app.updated_at = datetime.now(UTC).replace(tzinfo=None)
+        logging.info(f"use_icon_as_answer_icon={args.get('use_icon_as_answer_icon')}")
+        app.use_icon_as_answer_icon = False if app.use_icon_as_answer_icon is None else app.use_icon_as_answer_icon
+        logging.info(f"use_icon_as_answer_icon={app.use_icon_as_answer_icon}")
         db.session.commit()
 
         return app
@@ -373,3 +458,18 @@ class AppService:
                         meta["tool_icons"][tool_name] = {"background": "#252525", "content": "\ud83d\ude01"}
 
         return meta
+
+    # [Starry] directory app
+    def change_app_position(self, app_id: str, position: int) -> None:
+        if position == 1:
+            app = App.query.filter_by(id=app_id).first()
+            app.is_public = True
+        elif position == 0:
+            app = App.query.filter_by(id=app_id).first()
+            app.is_public = False
+
+        installed_app = InstalledApp.query.filter_by(app_id=app_id).first()
+        installed_app.position = position
+
+        db.session.commit()
+

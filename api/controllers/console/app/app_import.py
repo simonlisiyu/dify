@@ -1,3 +1,5 @@
+# [Starry] directory app
+import logging
 from typing import cast
 
 from flask_login import current_user  # type: ignore
@@ -17,6 +19,9 @@ from libs.login import login_required
 from models import Account
 from models.model import App
 from services.app_dsl_service import AppDslService, ImportStatus
+from services.directory_service import DirectoryService
+
+logger = logging.getLogger(__name__)
 
 
 class AppImportApi(Resource):
@@ -40,6 +45,8 @@ class AppImportApi(Resource):
         parser.add_argument("icon", type=str, location="json")
         parser.add_argument("icon_background", type=str, location="json")
         parser.add_argument("app_id", type=str, location="json")
+        # [Starry] directory app
+        parser.add_argument("directory_id", type=str, required=True, nullable=False, location="json")
         args = parser.parse_args()
 
         # Create service with session
@@ -58,6 +65,7 @@ class AppImportApi(Resource):
                 icon=args.get("icon"),
                 icon_background=args.get("icon_background"),
                 app_id=args.get("app_id"),
+                directory_id=args["directory_id"],
             )
             session.commit()
 
@@ -67,7 +75,13 @@ class AppImportApi(Resource):
             return result.model_dump(mode="json"), 400
         elif status == ImportStatus.PENDING.value:
             return result.model_dump(mode="json"), 202
-        return result.model_dump(mode="json"), 200
+
+        # [Starry] directory app
+        data = result.model_dump(mode="json")
+        logger.info(f"data={data}")
+        directory_service = DirectoryService()
+        directory_service.save_directory_binding(args["directory_id"], [data['app_id']], 'app')
+        return data, 200
 
 
 class AppImportConfirmApi(Resource):

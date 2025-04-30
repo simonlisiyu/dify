@@ -43,6 +43,9 @@ from models.dataset import (
 )
 from models.model import UploadFile
 from models.source import DataSourceOauthBinding
+
+# [Starry] directory dataset
+from services.directory_service import DirectoryService
 from services.entities.knowledge_entities.knowledge_entities import (
     ChildChunkUpdateArgs,
     KnowledgeConfig,
@@ -75,49 +78,78 @@ from tasks.sync_website_document_indexing_task import sync_website_document_inde
 
 
 class DatasetService:
+    # [Starry] directory dataset
     @staticmethod
-    def get_datasets(page, per_page, tenant_id=None, user=None, search=None, tag_ids=None, include_all=False):
-        query = Dataset.query.filter(Dataset.tenant_id == tenant_id).order_by(Dataset.created_at.desc())
+    def get_datasets(page, per_page, tenant_id=None, user=None, search=None, tag_ids=None, include_all=False,
+                     directory_id=None, created_start=None, created_end=None, account_id=None, order_by=None):
+        # [Starry] directory dataset
+        # logging.info(f"per_page={per_page}")
+        # logging.info(f"directory_id={directory_id}")
+        # logging.info(f"tenant_id={tenant_id}")
+        # logging.info(f"tag_ids={tag_ids}")
+        # logging.info(f"user={user}")
+        order_by_expression = Dataset.created_at.desc()
+        if order_by is not None:
+            order_by_expression = Dataset.created_at.desc() if order_by == 'desc' else Dataset.created_at.asc()
 
-        if user:
-            # get permitted dataset ids
-            dataset_permission = DatasetPermission.query.filter_by(account_id=user.id, tenant_id=tenant_id).all()
-            permitted_dataset_ids = {dp.dataset_id for dp in dataset_permission} if dataset_permission else None
+        # query = Dataset.query.filter(Dataset.tenant_id == tenant_id).order_by(Dataset.created_at.desc())
+        query = Dataset.query.filter(Dataset.tenant_id == tenant_id).order_by(order_by_expression)
+        directory_service = DirectoryService()
+        directory_all_sub = directory_service.get_sub_directorys('knowledge', directory_id)
+        directory_id_list = [str(directory.id) for directory in directory_all_sub]
+        directory_id_list.append(directory_id)
+        # logging.info(f"directory_id_list={directory_id_list}")
+        query = query.filter(Dataset.directory_id.in_(directory_id_list))
 
-            if user.current_role == TenantAccountRole.DATASET_OPERATOR:
-                # only show datasets that the user has permission to access
-                if permitted_dataset_ids:
-                    query = query.filter(Dataset.id.in_(permitted_dataset_ids))
-                else:
-                    return [], 0
-            else:
-                if user.current_role != TenantAccountRole.OWNER or not include_all:
-                    # show all datasets that the user has permission to access
+        if created_start is not None:
+            query = query.filter(Dataset.created_at >= created_start)
+        if created_end is not None:
+            query = query.filter(Dataset.created_at < created_end)
+        # if account_id is not None:
+        #     query = query.filter(Dataset.created_by == account_id)
+
+        # [Starry] dataset admin no permission
+        logging.info(f"current_user.is_admin_or_owner={current_user.is_admin_or_owner}")
+        if not current_user.is_admin_or_owner:
+            if user:
+                # get permitted dataset ids
+                dataset_permission = DatasetPermission.query.filter_by(account_id=user.id, tenant_id=tenant_id).all()
+                permitted_dataset_ids = {dp.dataset_id for dp in dataset_permission} if dataset_permission else None
+
+                if user.current_role == TenantAccountRole.DATASET_OPERATOR:
+                    # only show datasets that the user has permission to access
                     if permitted_dataset_ids:
-                        query = query.filter(
-                            db.or_(
-                                Dataset.permission == DatasetPermissionEnum.ALL_TEAM,
-                                db.and_(
-                                    Dataset.permission == DatasetPermissionEnum.ONLY_ME, Dataset.created_by == user.id
-                                ),
-                                db.and_(
-                                    Dataset.permission == DatasetPermissionEnum.PARTIAL_TEAM,
-                                    Dataset.id.in_(permitted_dataset_ids),
-                                ),
-                            )
-                        )
+                        query = query.filter(Dataset.id.in_(permitted_dataset_ids))
                     else:
-                        query = query.filter(
-                            db.or_(
-                                Dataset.permission == DatasetPermissionEnum.ALL_TEAM,
-                                db.and_(
-                                    Dataset.permission == DatasetPermissionEnum.ONLY_ME, Dataset.created_by == user.id
-                                ),
+                        return [], 0
+                else:
+                    if user.current_role != TenantAccountRole.OWNER or not include_all:
+                        # show all datasets that the user has permission to access
+                        if permitted_dataset_ids:
+                            query = query.filter(
+                                db.or_(
+                                    Dataset.permission == DatasetPermissionEnum.ALL_TEAM,
+                                    db.and_(
+                                        Dataset.permission == DatasetPermissionEnum.ONLY_ME, Dataset.created_by == user.id
+                                    ),
+                                    db.and_(
+                                        Dataset.permission == DatasetPermissionEnum.PARTIAL_TEAM,
+                                        Dataset.id.in_(permitted_dataset_ids),
+                                    ),
+                                )
                             )
-                        )
-        else:
-            # if no user, only show datasets that are shared with all team members
-            query = query.filter(Dataset.permission == DatasetPermissionEnum.ALL_TEAM)
+                        else:
+                            query = query.filter(
+                                db.or_(
+                                    Dataset.permission == DatasetPermissionEnum.ALL_TEAM,
+                                    db.and_(
+                                        Dataset.permission == DatasetPermissionEnum.ONLY_ME, Dataset.created_by == user.id
+                                    ),
+                                )
+                            )
+            else:
+                # if no user, only show datasets that are shared with all team members
+                query = query.filter(Dataset.permission == DatasetPermissionEnum.ALL_TEAM)
 
         if search:
             query = query.filter(Dataset.name.ilike(f"%{search}%"))
@@ -129,8 +161,10 @@ class DatasetService:
             else:
                 return [], 0
 
+        # 打印生成的 SQL 语句
+        # print(str(query.statement))
         datasets = query.paginate(page=page, per_page=per_page, max_per_page=100, error_out=False)
-
+        logging.info(f"datasets.size={datasets.total}")
         return datasets.items, datasets.total
 
     @staticmethod
@@ -172,6 +206,8 @@ class DatasetService:
         embedding_model_provider: Optional[str] = None,
         embedding_model_name: Optional[str] = None,
         retrieval_model: Optional[RetrievalModel] = None,
+        # [Starry] directory dataset
+        directory_id=None,
     ):
         # check if dataset name already exists
         if Dataset.query.filter_by(name=name, tenant_id=tenant_id).first():
@@ -214,6 +250,9 @@ class DatasetService:
         dataset.retrieval_model = retrieval_model.model_dump() if retrieval_model else None
         dataset.permission = permission or DatasetPermissionEnum.ONLY_ME
         dataset.provider = provider
+        # [Starry] directory dataset
+        dataset.account_id = account.id
+        dataset.directory_id = directory_id
         db.session.add(dataset)
         db.session.flush()
 
@@ -227,6 +266,9 @@ class DatasetService:
                 external_knowledge_api_id=external_knowledge_api_id,
                 external_knowledge_id=external_knowledge_id,
                 created_by=account.id,
+                # [Starry] directory dataset
+                account_id=account.id,
+                directory_id=directory_id,
             )
             db.session.add(external_knowledge_binding)
 
@@ -1393,6 +1435,8 @@ class DocumentService:
             embedding_model_provider=knowledge_config.embedding_model_provider,
             collection_binding_id=dataset_collection_binding_id,
             retrieval_model=retrieval_model.model_dump() if retrieval_model else None,
+            account_id=account.id,
+            directory_id=knowledge_config.directory_id,
         )
 
         db.session.add(dataset)  # type: ignore
@@ -1405,6 +1449,9 @@ class DocumentService:
         dataset.name = cut_name + "..."
         dataset.description = "useful for when you want to answer queries about the " + documents[0].name
         db.session.commit()
+
+        directory_service = DirectoryService()
+        directory_service.save_directory_binding(knowledge_config.directory_id, [dataset.id], 'knowledge')
 
         return dataset, documents, batch
 
@@ -1572,6 +1619,262 @@ class DocumentService:
 
             if not isinstance(args["process_rule"]["rules"]["segmentation"]["max_tokens"], int):
                 raise ValueError("Process rule segmentation max_tokens is invalid")
+
+    # [Starry] directory dataset
+    @staticmethod
+    def save_document_with_dataset_id_for_outer(
+            dataset: Dataset,
+            document_data: dict,
+            account_id: str | Any,
+            tenant_id: str | Any,
+            dataset_process_rule: Optional[DatasetProcessRule] = None,
+            created_from: str = "web",
+    ):
+        # check document limit
+        features = FeatureService.get_features(tenant_id)
+
+        if features.billing.enabled:
+            if "original_document_id" not in document_data or not document_data["original_document_id"]:
+                count = 0
+                if document_data["data_source"]["type"] == "upload_file":
+                    upload_file_list = document_data["data_source"]["info_list"]["file_info_list"]["file_ids"]
+                    count = len(upload_file_list)
+                elif document_data["data_source"]["type"] == "notion_import":
+                    notion_info_list = document_data["data_source"]["info_list"]["notion_info_list"]
+                    for notion_info in notion_info_list:
+                        count = count + len(notion_info["pages"])
+                elif document_data["data_source"]["type"] == "website_crawl":
+                    website_info = document_data["data_source"]["info_list"]["website_info_list"]
+                    count = len(website_info["urls"])
+                batch_upload_limit = int(dify_config.BATCH_UPLOAD_LIMIT)
+                if count > batch_upload_limit:
+                    raise ValueError(f"You have reached the batch upload limit of {batch_upload_limit}.")
+
+                DocumentService.check_documents_upload_quota(count, features)
+
+        # if dataset is empty, update dataset data_source_type
+        if not dataset.data_source_type:
+            dataset.data_source_type = document_data["data_source"]["type"]
+
+        if not dataset.indexing_technique:
+            if (
+                    "indexing_technique" not in document_data
+                    or document_data["indexing_technique"] not in Dataset.INDEXING_TECHNIQUE_LIST
+            ):
+                raise ValueError("Indexing technique is required")
+
+            dataset.indexing_technique = document_data["indexing_technique"]
+            if document_data["indexing_technique"] == "high_quality":
+                model_manager = ModelManager()
+                embedding_model = model_manager.get_default_model_instance(
+                    tenant_id=tenant_id, model_type=ModelType.TEXT_EMBEDDING
+                )
+                dataset.embedding_model = embedding_model.model
+                dataset.embedding_model_provider = embedding_model.provider
+                dataset_collection_binding = DatasetCollectionBindingService.get_dataset_collection_binding(
+                    embedding_model.provider, embedding_model.model
+                )
+                dataset.collection_binding_id = dataset_collection_binding.id
+                if not dataset.retrieval_model:
+                    default_retrieval_model = {
+                        "search_method": RetrievalMethod.SEMANTIC_SEARCH.value,
+                        "reranking_enable": False,
+                        "reranking_model": {"reranking_provider_name": "", "reranking_model_name": ""},
+                        "top_k": 2,
+                        "score_threshold_enabled": False,
+                    }
+
+                    dataset.retrieval_model = document_data.get("retrieval_model") or default_retrieval_model
+
+        documents = []
+        if document_data.get("original_document_id"):
+            document = DocumentService.update_document_with_dataset_id(dataset, document_data, account_id)
+            documents.append(document)
+            batch = document.batch
+        else:
+            batch = time.strftime("%Y%m%d%H%M%S") + str(random.randint(100000, 999999))
+            # save process rule
+            if not dataset_process_rule:
+                process_rule = document_data["process_rule"]
+                logging.info(f"process_rule={process_rule}")
+                if process_rule["mode"] == "custom":
+                    dataset_process_rule = DatasetProcessRule(
+                        dataset_id=dataset.id,
+                        mode=process_rule["mode"],
+                        rules=json.dumps(process_rule["rules"]),
+                        created_by=account_id,
+                    )
+                elif process_rule["mode"] == "automatic":
+                    dataset_process_rule = DatasetProcessRule(
+                        dataset_id=dataset.id,
+                        mode=process_rule["mode"],
+                        rules=json.dumps(DatasetProcessRule.AUTOMATIC_RULES),
+                        created_by=account_id,
+                    )
+                db.session.add(dataset_process_rule)
+                db.session.commit()
+            lock_name = "add_document_lock_dataset_id_{}".format(dataset.id)
+            with redis_client.lock(lock_name, timeout=600):
+                position = DocumentService.get_documents_position(dataset.id)
+                document_ids = []
+                duplicate_document_ids = []
+                if document_data["data_source"]["type"] == "upload_file":
+                    upload_file_list = document_data["data_source"]["info_list"]["file_info_list"]["file_ids"]
+                    for file_id in upload_file_list:
+                        file = (
+                            db.session.query(UploadFile)
+                            .filter(UploadFile.tenant_id == dataset.tenant_id, UploadFile.id == file_id)
+                            .first()
+                        )
+
+                        # raise error if file not found
+                        if not file:
+                            raise FileNotExistsError()
+
+                        file_name = file.name
+                        data_source_info = {
+                            "upload_file_id": file_id,
+                        }
+                        # check duplicate
+                        if document_data.get("duplicate", False):
+                            document = Document.query.filter_by(
+                                dataset_id=dataset.id,
+                                tenant_id=tenant_id,
+                                data_source_type="upload_file",
+                                enabled=True,
+                                name=file_name,
+                            ).first()
+                            if document:
+                                document.dataset_process_rule_id = dataset_process_rule.id
+                                document.updated_at = datetime.datetime.utcnow()
+                                document.created_from = created_from
+                                document.doc_form = document_data["doc_form"]
+                                document.doc_language = document_data["doc_language"]
+                                document.data_source_info = json.dumps(data_source_info)
+                                document.batch = batch
+                                document.indexing_status = "waiting"
+                                db.session.add(document)
+                                documents.append(document)
+                                duplicate_document_ids.append(document.id)
+                                continue
+                        document = DocumentService.build_document(
+                            dataset,
+                            dataset_process_rule.id,
+                            document_data["data_source"]["type"],
+                            document_data["doc_form"],
+                            document_data["doc_language"],
+                            data_source_info,
+                            created_from,
+                            position,
+                            account_id,
+                            file_name,
+                            batch,
+                        )
+                        db.session.add(document)
+                        db.session.flush()
+                        document_ids.append(document.id)
+                        documents.append(document)
+                        position += 1
+                elif document_data["data_source"]["type"] == "notion_import":
+                    notion_info_list = document_data["data_source"]["info_list"]["notion_info_list"]
+                    exist_page_ids = []
+                    exist_document = {}
+                    documents = Document.query.filter_by(
+                        dataset_id=dataset.id,
+                        tenant_id=tenant_id,
+                        data_source_type="notion_import",
+                        enabled=True,
+                    ).all()
+                    if documents:
+                        for document in documents:
+                            data_source_info = json.loads(document.data_source_info)
+                            exist_page_ids.append(data_source_info["notion_page_id"])
+                            exist_document[data_source_info["notion_page_id"]] = document.id
+                    for notion_info in notion_info_list:
+                        workspace_id = notion_info["workspace_id"]
+                        data_source_binding = DataSourceOauthBinding.query.filter(
+                            db.and_(
+                                DataSourceOauthBinding.tenant_id == tenant_id,
+                                DataSourceOauthBinding.provider == "notion",
+                                DataSourceOauthBinding.disabled == False,
+                                DataSourceOauthBinding.source_info["workspace_id"] == f'"{workspace_id}"',
+                                )
+                        ).first()
+                        if not data_source_binding:
+                            raise ValueError("Data source binding not found.")
+                        for page in notion_info["pages"]:
+                            if page["page_id"] not in exist_page_ids:
+                                data_source_info = {
+                                    "notion_workspace_id": workspace_id,
+                                    "notion_page_id": page["page_id"],
+                                    "notion_page_icon": page["page_icon"],
+                                    "type": page["type"],
+                                }
+                                document = DocumentService.build_document(
+                                    dataset,
+                                    dataset_process_rule.id,
+                                    document_data["data_source"]["type"],
+                                    document_data["doc_form"],
+                                    document_data["doc_language"],
+                                    data_source_info,
+                                    created_from,
+                                    position,
+                                    account_id,
+                                    page["page_name"],
+                                    batch,
+                                )
+                                db.session.add(document)
+                                db.session.flush()
+                                document_ids.append(document.id)
+                                documents.append(document)
+                                position += 1
+                            else:
+                                exist_document.pop(page["page_id"])
+                    # delete not selected documents
+                    if len(exist_document) > 0:
+                        clean_notion_document_task.delay(list(exist_document.values()), dataset.id)
+                elif document_data["data_source"]["type"] == "website_crawl":
+                    website_info = document_data["data_source"]["info_list"]["website_info_list"]
+                    urls = website_info["urls"]
+                    for url in urls:
+                        data_source_info = {
+                            "url": url,
+                            "provider": website_info["provider"],
+                            "job_id": website_info["job_id"],
+                            "only_main_content": website_info.get("only_main_content", False),
+                            "mode": "crawl",
+                        }
+                        if len(url) > 255:
+                            document_name = url[:200] + "..."
+                        else:
+                            document_name = url
+                        document = DocumentService.build_document(
+                            dataset,
+                            dataset_process_rule.id,
+                            document_data["data_source"]["type"],
+                            document_data["doc_form"],
+                            document_data["doc_language"],
+                            data_source_info,
+                            created_from,
+                            position,
+                            account_id,
+                            document_name,
+                            batch,
+                        )
+                        db.session.add(document)
+                        db.session.flush()
+                        document_ids.append(document.id)
+                        documents.append(document)
+                        position += 1
+                db.session.commit()
+
+                # trigger async task
+                if document_ids:
+                    document_indexing_task.delay(dataset.id, document_ids)
+                if duplicate_document_ids:
+                    duplicate_document_indexing_task.delay(dataset.id, duplicate_document_ids)
+
+        return documents, batch
 
 
 class SegmentService:

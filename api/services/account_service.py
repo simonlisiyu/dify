@@ -8,6 +8,8 @@ from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from typing import Any, Optional, cast
 
+# [Starry] directory user
+from flask_login import current_user
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -41,7 +43,6 @@ from services.errors.account import (
     AccountPasswordError,
     AccountRegisterError,
     CannotOperateSelfError,
-    CurrentPasswordIncorrectError,
     InvalidActionError,
     LinkAccountIntegrateError,
     MemberNotInTenantError,
@@ -51,7 +52,6 @@ from services.errors.account import (
 )
 from services.errors.workspace import WorkSpaceNotAllowedCreateError
 from services.feature_service import FeatureService
-from tasks.delete_account_task import delete_account_task
 from tasks.mail_account_deletion_task import send_account_deletion_verification_code
 from tasks.mail_email_code_login import send_email_code_login_mail_task
 from tasks.mail_invite_member_task import send_invite_member_mail_task
@@ -173,22 +173,27 @@ class AccountService:
 
         return cast(Account, account)
 
+    # [Starry] directory user
     @staticmethod
-    def update_account_password(account, password, new_password):
+    # def update_account_password(account, password, new_password):
+    def update_account_password(account_id, password):
         """update account password"""
-        if account.password and not compare_password(password, account.password, account.password_salt):
-            raise CurrentPasswordIncorrectError("Current password is incorrect.")
+        # if account.password and not compare_password(password, account.password, account.password_salt):
+        #     raise CurrentPasswordIncorrectError("Current password is incorrect.")
 
         # may be raised
-        valid_password(new_password)
+        valid_password(password)
 
         # generate password salt
         salt = secrets.token_bytes(16)
         base64_salt = base64.b64encode(salt).decode()
 
         # encrypt password with salt
-        password_hashed = hash_password(new_password, salt)
+        password_hashed = hash_password(password, salt)
         base64_password_hashed = base64.b64encode(password_hashed).decode()
+
+        # [Starry] directory user
+        account = Account.query.filter_by(id=account_id).first()
         account.password = base64_password_hashed
         account.password_salt = base64_salt
         db.session.commit()
@@ -204,18 +209,19 @@ class AccountService:
         is_setup: Optional[bool] = False,
     ) -> Account:
         """create account"""
-        if not FeatureService.get_system_features().is_allow_register and not is_setup:
-            from controllers.console.error import AccountNotFound
+        # [Starry] directory user
+        # if not FeatureService.get_system_features().is_allow_register and not is_setup:
+        #     from controllers.console.error import AccountNotFound
+        #
+        #     raise AccountNotFound()
 
-            raise AccountNotFound()
-
-        if dify_config.BILLING_ENABLED and BillingService.is_email_in_freeze(email):
-            raise AccountRegisterError(
-                description=(
-                    "This email account has been deleted within the past "
-                    "30 days and is temporarily unavailable for new account registration"
-                )
-            )
+        # if dify_config.BILLING_ENABLED and BillingService.is_email_in_freeze(email):
+        #     raise AccountRegisterError(
+        #         description=(
+        #             "This email account has been deleted within the past "
+        #             "30 days and is temporarily unavailable for new account registration"
+        #         )
+        #     )
 
         account = Account()
         account.email = email
@@ -287,10 +293,26 @@ class AccountService:
 
         return True
 
+    # [Starry] directory user
     @staticmethod
-    def delete_account(account: Account) -> None:
-        """Delete account. This method only adds a task to the queue for deletion."""
-        delete_account_task.delay(account.id)
+    # def delete_account(account: Account) -> None:
+    #     """Delete account. This method only adds a task to the queue for deletion."""
+    #     delete_account_task.delay(account.id)
+    def delete_account(account_id: str) -> None:
+        """Delete account"""
+        account = Account.query.filter_by(id=account_id).first()
+        tenant_account_join = TenantAccountJoin.query.filter_by(account_id=account_id).first()
+        db.session.delete(account)
+        db.session.delete(tenant_account_join)
+        db.session.commit()
+
+    # [Starry] directory user
+    @staticmethod
+    def change_account_status(account_id: str, status: str) -> None:
+        """Close or active account"""
+        account = Account.query.filter_by(id=account_id).first()
+        account.status = status
+        db.session.commit()
 
     @staticmethod
     def link_account_integrate(provider: str, open_id: str, account: Account) -> None:
@@ -325,9 +347,22 @@ class AccountService:
         account.status = AccountStatus.CLOSED.value
         db.session.commit()
 
+    # [Starry] directory user
+    # @staticmethod
+    # def update_account(account, **kwargs):
+    #     """Update account fields"""
+    #     for field, value in kwargs.items():
+    #         if hasattr(account, field):
+    #             setattr(account, field, value)
+    #         else:
+    #             raise AttributeError(f"Invalid field: {field}")
+    #
+    #     db.session.commit()
+    #     return account
     @staticmethod
-    def update_account(account, **kwargs):
+    def update_account(account_id, **kwargs):
         """Update account fields"""
+        account = Account.query.filter_by(id=account_id).first()
         for field, value in kwargs.items():
             if hasattr(account, field):
                 setattr(account, field, value)
@@ -643,6 +678,7 @@ class TenantService:
         if ta:
             ta.role = role
         else:
+            logging.info(f"role={role}")
             ta = TenantAccountJoin(tenant_id=tenant.id, account_id=account.id, role=role)
             db.session.add(ta)
 
@@ -841,6 +877,14 @@ class TenantService:
 
         return cast(dict, tenant.custom_config_dict)
 
+    # [Starry] directory user
+    @staticmethod
+    def get_current_tenant_by_id(tenant_id: str):
+        tenant = Tenant.query.filter_by(id=tenant_id,).first()
+        if not tenant:
+            raise TenantNotFoundError(f"Tenant not found for id: {tenant_id}.")
+        return tenant
+
 
 class RegisterService:
     @classmethod
@@ -890,6 +934,9 @@ class RegisterService:
         cls,
         email,
         name,
+        # [Starry] directory user
+        role,
+        tenant_id: Optional[str] = None,
         password: Optional[str] = None,
         open_id: Optional[str] = None,
         provider: Optional[str] = None,
@@ -910,15 +957,23 @@ class RegisterService:
             )
             account.status = AccountStatus.ACTIVE.value if not status else status.value
             account.initialized_at = datetime.now(UTC).replace(tzinfo=None)
+            # [Starry] directory user
+            if tenant_id is None:
+                tenant_id = current_user.current_tenant_id
+            tenant = TenantService.get_current_tenant_by_id(tenant_id)
+            # logging.info(f"tenant_id={tenant.id}")
+            # logging.info(f"account_id={account.id}")
+            TenantService.create_tenant_member(tenant, account, role=role)
 
             if open_id is not None and provider is not None:
                 AccountService.link_account_integrate(provider, open_id, account)
 
-            if FeatureService.get_system_features().is_allow_create_workspace and create_workspace_required:
-                tenant = TenantService.create_tenant(f"{account.name}'s Workspace")
-                TenantService.create_tenant_member(tenant, account, role="owner")
-                account.current_tenant = tenant
-                tenant_was_created.send(tenant)
+            # [Starry] directory user
+            # if FeatureService.get_system_features().is_allow_create_workspace and create_workspace_required:
+            #     tenant = TenantService.create_tenant(f"{account.name}'s Workspace")
+            #     TenantService.create_tenant_member(tenant, account, role="owner")
+            #     account.current_tenant = tenant
+            #     tenant_was_created.send(tenant)
 
             db.session.commit()
         except WorkSpaceNotAllowedCreateError:

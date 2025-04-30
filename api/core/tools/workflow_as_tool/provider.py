@@ -21,7 +21,7 @@ from core.tools.entities.tool_entities import (
 from core.tools.utils.workflow_configuration_sync import WorkflowToolConfigurationUtils
 from core.tools.workflow_as_tool.tool import WorkflowTool
 from extensions.ext_database import db
-from models.model import App, AppMode
+from models.model import App, AppMode, Directory
 from models.tools import WorkflowToolProvider
 from models.workflow import Workflow
 
@@ -38,6 +38,10 @@ VARIABLE_TO_PARAMETER_TYPE_MAPPING = {
 class WorkflowToolProviderController(ToolProviderController):
     provider_id: str
     tools: list[WorkflowTool] = Field(default_factory=list)
+    # [Starry] directory tool
+    directory_id: str
+    directory_name: str
+    created_at_str: str
 
     def __init__(self, entity: ToolProviderEntity, provider_id: str):
         super().__init__(entity=entity)
@@ -49,6 +53,18 @@ class WorkflowToolProviderController(ToolProviderController):
 
         if not app:
             raise ValueError("app not found")
+
+        # [Starry] directory tool
+        directory_name = ""
+        directory = db.session.query(Directory).filter(
+            Directory.id == db_provider.directory_id
+        ).first()
+        if directory:
+            directory_name = directory.name
+
+        created_at_str = ""
+        if db_provider.created_at:
+            created_at_str = db_provider.created_at_str
 
         controller = WorkflowToolProviderController(
             entity=ToolProviderEntity(
@@ -63,6 +79,9 @@ class WorkflowToolProviderController(ToolProviderController):
                 plugin_id=None,
             ),
             provider_id=db_provider.id or "",
+            directory_id=db_provider.directory_id,
+            directory_name=directory_name,
+            created_at_str=created_at_str,
         )
 
         # init tools

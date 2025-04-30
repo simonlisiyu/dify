@@ -39,6 +39,8 @@ class Account(UserMixin, Base):
     initialized_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, nullable=False, server_default=func.current_timestamp())
     updated_at = db.Column(db.DateTime, nullable=False, server_default=func.current_timestamp())
+    dmc_user_id = db.Column(db.String(255))
+    dmc_user_name = db.Column(db.String(255))
 
     @property
     def is_password_set(self):
@@ -124,6 +126,19 @@ class Account(UserMixin, Base):
     @property
     def is_dataset_operator(self):
         return self._current_tenant.current_role == TenantAccountRole.DATASET_OPERATOR
+
+    @property
+    def get_dmc_user_id(self):
+        if self.dmc_user_id is None:
+            return ""
+        return self.dmc_user_id
+
+    @property
+    def get_dmc_user_name(self):
+        if self.dmc_user_name is None:
+            return ""
+        return self.dmc_user_name
+
 
 
 class TenantStatus(enum.StrEnum):

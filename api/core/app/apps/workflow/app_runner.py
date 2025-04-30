@@ -14,6 +14,7 @@ from core.workflow.entities.variable_pool import VariablePool
 from core.workflow.enums import SystemVariableKey
 from core.workflow.workflow_entry import WorkflowEntry
 from extensions.ext_database import db
+from models import Account
 from models.enums import UserFrom
 from models.model import App, EndUser
 from models.workflow import WorkflowType
@@ -89,10 +90,22 @@ class WorkflowAppRunner(WorkflowBasedAppRunner):
             inputs = self.application_generate_entity.inputs
             files = self.application_generate_entity.files
 
+            dmc_hora_url = dify_config.HORA_URL
+            dmc_tassadar_url = dify_config.TASSADAR_URL
+            try:
+                account = db.session.query(Account).filter(Account.id == user_id).one_or_none()
+                dmc_user_id = account.dmc_user_id if account else None
+            except Exception as e:
+                dmc_user_id = None
+                logger.error(f"Failed to get account by id {user_id}")
+
             # Create a variable pool.
             system_inputs = {
                 SystemVariableKey.FILES: files,
                 SystemVariableKey.USER_ID: user_id,
+                SystemVariableKey.DMC_USER_ID: dmc_user_id,
+                SystemVariableKey.DMC_HORA_URL: dmc_hora_url,
+                SystemVariableKey.DMC_TASSADAR_URL: dmc_tassadar_url,
                 SystemVariableKey.APP_ID: app_config.app_id,
                 SystemVariableKey.WORKFLOW_ID: app_config.workflow_id,
                 SystemVariableKey.WORKFLOW_RUN_ID: self.application_generate_entity.workflow_run_id,
